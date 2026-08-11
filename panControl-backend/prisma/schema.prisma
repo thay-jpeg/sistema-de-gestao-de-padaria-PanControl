@@ -1,13 +1,324 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model Usuario {
+  idUsuario_PK Int      @id @default(autoincrement())
+  nomeUsuario  String
+  codigoAcesso String   @unique
+  senhaHash    String
+  perfil       String
+  statusAtivo  Boolean  @default(true)
+
+  compras      CompraIngrediente[]
+  producoes    Producao[]
+  vendas       Venda[]
+  pedidos      PedidoVenda[]
+  perdas       PerdaProduto[]
+
+  @@map("usuarios")
+}
+
+model Produto {
+  idProduto_PK           Int      @id @default(autoincrement())
+  nomeProduto            String
+  codigoBarras           String?  @unique
+  diasValidadePadrao     Int
+  percentualICMS         Decimal  @db.Decimal(5, 2)
+  percentualLucroBalcao  Decimal  @db.Decimal(5, 2)
+  percentualLucroAtacado Decimal  @db.Decimal(5, 2)
+  precoBalcao            Decimal  @db.Decimal(10, 2)
+  precoAtacado           Decimal  @db.Decimal(10, 2)
+  quantidadeEstoque      Int      @default(0)
+
+  fichasTecnicas FichaTecnica[]
+  producoes      Producao[]
+  perdas         PerdaProduto[]
+  itensPedido    ItensPedido[]
+  itensVenda     ItensVenda[]
+
+  @@map("produtos")
+}
+
+model Ingrediente {
+  idIngrediente_PK   Int      @id @default(autoincrement())
+  nomeIngrediente    String
+  unidadeMedida      String
+  quantidadeEstoque  Decimal  @db.Decimal(10, 3)
+  estoqueMinimo      Decimal  @db.Decimal(10, 3)
+  custoMedioUnitario Decimal  @db.Decimal(10, 2)
+
+  fichasTecnicas FichaTecnica[]
+  compras        CompraIngrediente[]
+
+  @@map("ingredientes")
+}
+
+model FichaTecnica {
+  idFichaTecnica_PK    Int     @id @default(autoincrement())
+  idProduto_FK         Int
+  idIngrediente_FK     Int
+  textoReceita         String?
+  quantidadeNecessaria Decimal @db.Decimal(10, 3)
+
+  produto     Produto     @relation(fields: [idProduto_FK], references: [idProduto_PK])
+  ingrediente Ingrediente @relation(fields: [idIngrediente_FK], references: [idIngrediente_PK])
+
+  @@map("fichasTecnicas")
+}
+
+model ClienteAtacadista {
+  idClienteAtacadista_PK Int       @id @default(autoincrement())
+  nomeRazaoSocial        String
+  tipoPessoa             String    @db.Char(1)
+  documentoCliente       String    @unique
+  dataNascimento         DateTime?
+  ativo                  Boolean   @default(true)
+
+  enderecos              Endereco[]
+  pedidos                PedidoVenda[]
+  vendas                 Venda[]
+  telefones              FoneCliente[]
+  emails                 EmailCliente[]
+
+  @@map("clientesAtacadistas")
+}
+
+model Endereco {
+  idEndereco_PK          Int     @id @default(autoincrement())
+  CEP                    String
+  complementoEnd         String?
+  numeroEnd              String
+  
+  idClienteAtacadista_FK Int
+  idCidade_FK            Int
+  idLogradouro_FK        Int
+  idBairro_FK            Int
+
+  cliente                ClienteAtacadista @relation(fields: [idClienteAtacadista_FK], references: [idClienteAtacadista_PK])
+  cidade                 Cidade            @relation(fields: [idCidade_FK], references: [idCidade_PK])
+  logradouro             Logradouro        @relation(fields: [idLogradouro_FK], references: [idLogradouro_PK])
+  bairro                 Bairro            @relation(fields: [idBairro_FK], references: [idBairro_PK])
+
+  @@map("endereco")
+}
+
+model Producao {
+  idProducao_PK       Int      @id @default(autoincrement())
+  quantidadeProduzida Int
+  custoTotalProducao  Decimal  @db.Decimal(10, 2)
+  dataValidadeLote   DateTime
+  dataProducao       DateTime @default(now())
+  
+  idProduto_FK       Int
+  idUsuario_FK       Int
+
+  produto Produto @relation(fields: [idProduto_FK], references: [idProduto_PK])
+  usuario Usuario @relation(fields: [idUsuario_FK], references: [idUsuario_PK])
+
+  perdas  PerdaProduto[]
+
+  @@map("producoes")
+}
+
+model PerdaProduto {
+  idPerdaProduto_PK Int      @id @default(autoincrement())
+  quantidadePerdida Int
+  motivoPerda       String
+  dataPerda         DateTime @default(now())
+  
+  idProducao_FK     Int
+  idProduto_FK      Int
+  idUsuario_FK      Int
+
+  producao Producao @relation(fields: [idProducao_FK], references: [idProducao_PK])
+  produto  Produto  @relation(fields: [idProduto_FK], references: [idProduto_PK])
+  usuario  Usuario  @relation(fields: [idUsuario_FK], references: [idUsuario_PK])
+
+  @@map("perdasProdutos")
+}
+
+model UnidadeFederativa {
+  siglaUF_PK String @id @db.VarChar(2)
+  nomeUF     String
+  
+  cidades    Cidade[]
+
+  @@map("unidadeFederativa")
+}
+
+model Cidade {
+  idCidade_PK Int    @id @default(autoincrement())
+  nomeCidade  String
+  siglaUF_FK  String
+  
+  uf          UnidadeFederativa @relation(fields: [siglaUF_FK], references: [siglaUF_PK])
+  enderecos   Endereco[]
+
+  @@map("cidade")
+}
+
+model Bairro {
+  idBairro_PK Int    @id @default(autoincrement())
+  nomeBairro  String
+
+  enderecos   Endereco[]
+
+  @@map("bairro")
+}
+
+model TipoLogradouro {
+  siglaTipoLogradouro_PK String @id @db.VarChar(10)
+  nomeTipoLogradouro     String
+
+  logradouros            Logradouro[]
+
+  @@map("tipoLogradouro")
+}
+
+model Logradouro {
+  idLogradouro_PK        Int    @id @default(autoincrement())
+  nomeLogradouro         String
+  siglaTipoLogradouro_FK String
+
+  tipo                   TipoLogradouro @relation(fields: [siglaTipoLogradouro_FK], references: [siglaTipoLogradouro_PK])
+  enderecos              Endereco[]
+
+  @@map("logradouro")
+}
+
+model DDI {
+  DDI_PK Int @id
+
+  telefones FoneCliente[]
+
+  @@map("DDI")
+}
+
+model DDD {
+  DDD_PK Int @id
+
+  telefones FoneCliente[]
+
+  @@map("DDD")
+}
+
+model FoneCliente {
+  nroTelefone_PK String @id @db.VarChar(15)
+  DDD_PK         Int
+  DDI_PK         Int
+  idCliente_FK   Int
+
+  ddd            DDD               @relation(fields: [DDD_PK], references: [DDD_PK])
+  ddi            DDI               @relation(fields: [DDI_PK], references: [DDI_PK])
+  cliente        ClienteAtacadista @relation(fields: [idCliente_FK], references: [idClienteAtacadista_PK])
+
+  @@map("foneCliente")
+}
+
+model DominioEmail {
+  idDominioEmail_PK Int    @id @default(autoincrement())
+  dominio           String
+
+  emails            EmailCliente[]
+
+  @@map("dominioEmail")
+}
+
+model EmailCliente {
+  idEmail_PK             Int    @id @default(autoincrement())
+  credencial             String
+  idDominioEmail_FK      Int
+  idClienteAtacadista_FK Int
+
+  dominio                DominioEmail      @relation(fields: [idDominioEmail_FK], references: [idDominioEmail_PK])
+  cliente                ClienteAtacadista @relation(fields: [idClienteAtacadista_FK], references: [idClienteAtacadista_PK])
+
+  @@map("emailCliente")
+}
+
+model CompraIngrediente {
+  idCompras_PK       Int      @id @default(autoincrement())
+  quantidadeComprada Decimal  @db.Decimal(10, 3)
+  dataValidade       DateTime
+  quantidadeRestante Decimal  @db.Decimal(10, 3)
+  custoTotal         Decimal  @db.Decimal(10, 2)
+  dataCompra         DateTime @default(now())
+  
+  idUsuario_FK       Int
+  idIngrediente_FK   Int
+
+  usuario            Usuario     @relation(fields: [idUsuario_FK], references: [idUsuario_PK])
+  ingrediente        Ingrediente @relation(fields: [idIngrediente_FK], references: [idIngrediente_PK])
+
+  @@map("comprasIngredientes")
+}
+
+model PedidoVenda {
+  idPedidoVenda_PK       Int      @id @default(autoincrement())
+  situacao               String
+  dataPedido             DateTime @default(now())
+  valorTotal             Decimal  @db.Decimal(10, 2)
+  
+  idClienteAtacadista_FK Int
+  idUsuario_FK           Int
+
+  cliente                ClienteAtacadista @relation(fields: [idClienteAtacadista_FK], references: [idClienteAtacadista_PK])
+  usuario                Usuario           @relation(fields: [idUsuario_FK], references: [idUsuario_PK])
+  
+  itens                  ItensPedido[]
+  vendas                 Venda[]
+
+  @@map("pedidosVenda")
+}
+
+model ItensPedido {
+  idItensPedido_PK      Int     @id @default(autoincrement())
+  quantidade            Int
+  precoUnitarioAplicado Decimal @db.Decimal(10, 2)
+  
+  idProduto_FK          Int
+  idPedidoVenda_FK      Int
+
+  produto               Produto     @relation(fields: [idProduto_FK], references: [idProduto_PK])
+  pedido                PedidoVenda @relation(fields: [idPedidoVenda_FK], references: [idPedidoVenda_PK])
+
+  @@map("itensPedido")
+}
+
+model Venda {
+  idVenda_PK             Int      @id @default(autoincrement())
+  valorTotal             Decimal  @db.Decimal(10, 2)
+  metodoPagamento        String
+  dataVenda              DateTime @default(now())
+  
+  idUsuario_FK           Int
+  idClienteAtacadista_FK Int?
+  idPedidoVenda_FK       Int?
+
+  usuario                Usuario            @relation(fields: [idUsuario_FK], references: [idUsuario_PK])
+  cliente                ClienteAtacadista? @relation(fields: [idClienteAtacadista_FK], references: [idClienteAtacadista_PK])
+  pedido                 PedidoVenda?       @relation(fields: [idPedidoVenda_FK], references: [idPedidoVenda_PK])
+  
+  itens                  ItensVenda[]
+
+  @@map("vendas")
+}
+
+model ItensVenda {
+  idItensVenda_PK       Int     @id @default(autoincrement())
+  quantidade            Int
+  precoUnitarioAplicado Decimal @db.Decimal(10, 2)
+  
+  idProduto_FK          Int
+  idVenda_FK            Int
+
+  produto               Produto @relation(fields: [idProduto_FK], references: [idProduto_PK])
+  venda                 Venda   @relation(fields: [idVenda_FK], references: [idVenda_PK])
+
+  @@map("itensVenda")
 }
