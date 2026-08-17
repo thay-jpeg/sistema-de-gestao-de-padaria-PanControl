@@ -1,64 +1,95 @@
-// ingredientIds referencia os IDs de ingredients.js
-// validity será recalculada automaticamente pelo DataContext
+/**
+ * fichasTecnica: lista de { ingredienteId, quantidade } — referencia ingredientes.id
+ * diasValidadePadrao: número de dias a partir da data de produção
+ * precoBalcao / precoAtacado: preços separados por canal
+ * percentualICMS, percentualLucroBalcao, percentualLucroAtacado: margens
+ * textoReceita: texto livre do modo de preparo (fichasTecnicas.textoReceita no MER)
+ */
 export const PRODUCTS = [
   {
-    id: '110', code: '110', name: 'Pão Francês',
-    price: 1.50, cost: 0.60, icms: 7, qty: 10,
-    validity: '15/08/2026',
-    ingredientIds: ['001', '002', '003', '004', '005'],
-    recipe: 'Modo de preparo: 2h 30min\nDilua o fermento em um copo de água morna com o açúcar.\nMisture os outros ingredientes.\nAmasse e levante, empurrando a massa para frente com a palma da mão, dobrando-a sobre si mesma.',
+    id: '001', code: '110', name: 'Pão Francês', codigoBarras: '7891234560001',
+    percentualICMS: 7, percentualLucroBalcao: 150, percentualLucroAtacado: 80,
+    precoBalcao: 0.75, precoAtacado: 0.50, quantidadeEstoque: 10,
+    diasValidadePadrao: 2,
+    fichasTecnica: [
+      { ingredienteId: '001', quantidade: 0.05 },
+      { ingredienteId: '002', quantidade: 0.003 },
+      { ingredienteId: '003', quantidade: 1.5 },
+      { ingredienteId: '004', quantidade: 1.0 },
+      { ingredienteId: '005', quantidade: 3.0 },
+    ],
+    textoReceita: 'Dilua o fermento em água morna com o açúcar. Misture os outros ingredientes. Amasse por 10 min. Deixe descansar 1h. Modele e asse a 220°C por 20 min.',
     image: null,
   },
   {
-    id: '092', code: '092', name: 'Pão Caseiro',
-    price: 19.90, cost: 8.00, icms: 7, qty: 8,
-    validity: '10/08/2026',
-    ingredientIds: ['001', '006', '007', '009'],
-    recipe: 'Misture todos os ingredientes e asse a 180°C por 40 minutos.',
+    id: '002', code: '092', name: 'Pão Caseiro', codigoBarras: '7891234560002',
+    percentualICMS: 7, percentualLucroBalcao: 120, percentualLucroAtacado: 70,
+    precoBalcao: 19.90, precoAtacado: 14.00, quantidadeEstoque: 8,
+    diasValidadePadrao: 4,
+    fichasTecnica: [
+      { ingredienteId: '001', quantidade: 0.5 },
+      { ingredienteId: '006', quantidade: 200 },
+      { ingredienteId: '007', quantidade: 2 },
+      { ingredienteId: '009', quantidade: 50 },
+    ],
+    textoReceita: 'Misture todos os ingredientes até obter uma massa lisa. Asse a 180°C por 40 minutos.',
     image: null,
   },
   {
-    id: '115', code: '115', name: 'Pão Forma',
-    price: 7.98, cost: 3.20, icms: 7, qty: 15,
-    validity: '17/08/2026',
-    ingredientIds: ['001', '003', '002', '010'],
-    recipe: 'Misture, amasse e coloque na forma. Asse por 30 minutos a 200°C.',
+    id: '003', code: '115', name: 'Pão Forma', codigoBarras: '7891234560003',
+    percentualICMS: 7, percentualLucroBalcao: 110, percentualLucroAtacado: 65,
+    precoBalcao: 7.98, precoAtacado: 5.50, quantidadeEstoque: 15,
+    diasValidadePadrao: 5,
+    fichasTecnica: [
+      { ingredienteId: '001', quantidade: 0.5 },
+      { ingredienteId: '003', quantidade: 5 },
+      { ingredienteId: '002', quantidade: 0.03 },
+      { ingredienteId: '010', quantidade: 30 },
+    ],
+    textoReceita: 'Misture, amasse e coloque na forma. Asse por 30 minutos a 200°C.',
     image: null,
   },
   {
-    id: '042', code: '042', name: 'Broche de Coco',
-    price: 14.23, cost: 6.00, icms: 7, qty: 12,
-    validity: '10/08/2026',
-    ingredientIds: ['001', '008', '002', '007'],
-    recipe: 'Misture os ingredientes, forme bolinhas e asse a 180°C por 25 minutos.',
+    id: '004', code: '042', name: 'Broche de Coco', codigoBarras: '7891234560004',
+    percentualICMS: 7, percentualLucroBalcao: 130, percentualLucroAtacado: 75,
+    precoBalcao: 14.23, precoAtacado: 10.00, quantidadeEstoque: 12,
+    diasValidadePadrao: 3,
+    fichasTecnica: [
+      { ingredienteId: '001', quantidade: 0.4 },
+      { ingredienteId: '008', quantidade: 100 },
+      { ingredienteId: '002', quantidade: 0.1 },
+      { ingredienteId: '007', quantidade: 2 },
+    ],
+    textoReceita: 'Misture os ingredientes, forme bolinhas e asse a 180°C por 25 minutos.',
     image: null,
   },
   {
-    id: '074', code: '074', name: 'Broche Caseiro',
-    price: 7.98, cost: 3.50, icms: 7, qty: 20,
-    validity: '17/08/2026',
-    ingredientIds: ['001', '009', '002'],
-    recipe: 'Misture, modele e asse a 170°C por 20 minutos.',
+    id: '005', code: '074', name: 'Broche Caseiro', codigoBarras: '7891234560005',
+    percentualICMS: 7, percentualLucroBalcao: 128, percentualLucroAtacado: 72,
+    precoBalcao: 7.98, precoAtacado: 5.80, quantidadeEstoque: 20,
+    diasValidadePadrao: 3,
+    fichasTecnica: [
+      { ingredienteId: '001', quantidade: 0.3 },
+      { ingredienteId: '009', quantidade: 80 },
+      { ingredienteId: '002', quantidade: 0.05 },
+    ],
+    textoReceita: 'Misture, modele e asse a 170°C por 20 minutos.',
     image: null,
   },
   {
-    id: '020', code: '020', name: 'Cacetinho',
-    price: 9.98, cost: 4.00, icms: 7, qty: 30,
-    validity: '15/08/2026',
-    ingredientIds: ['001', '003', '004'],
-    recipe: 'Amasse bem e modele em formato de cacetinho. Asse a 220°C por 20 minutos.',
-    image: null,
-  },
-  {
-    id: '050', code: '050', name: 'Cacetinho Francês',
-    price: 12.98, cost: 5.50, icms: 7, qty: 25,
-    validity: '15/08/2026',
-    ingredientIds: ['001', '003', '004'],
-    recipe: 'Massa mais hidratada. Asse a 240°C com vapor por 25 minutos.',
+    id: '006', code: '020', name: 'Cacetinho', codigoBarras: '7891234560006',
+    percentualICMS: 7, percentualLucroBalcao: 140, percentualLucroAtacado: 85,
+    precoBalcao: 0.60, precoAtacado: 0.42, quantidadeEstoque: 30,
+    diasValidadePadrao: 2,
+    fichasTecnica: [
+      { ingredienteId: '001', quantidade: 0.04 },
+      { ingredienteId: '003', quantidade: 1.0 },
+      { ingredienteId: '004', quantidade: 0.8 },
+    ],
+    textoReceita: 'Amasse bem e modele em formato de cacetinho. Asse a 220°C por 20 minutos.',
     image: null,
   },
 ]
 
-export function getProductByCode(code) {
-  return PRODUCTS.find(p => p.code === code) || null
-}
+export function getProductByCode(code) { return PRODUCTS.find(p => p.code === code) || null }
+export function getProductById(id)     { return PRODUCTS.find(p => p.id   === id)   || null }

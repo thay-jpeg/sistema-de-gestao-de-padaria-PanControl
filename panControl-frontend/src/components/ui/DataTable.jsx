@@ -1,7 +1,9 @@
+import React from 'react'
+
 /**
  * Props:
  *  columns: [{ key, label, align? }]
- *  rows: array de objetos
+ *  rows: array de objetos — valores podem ser string, number ou ReactNode
  *  selectedId: key da linha selecionada
  *  onSelect: fn(row)
  *  rowKey: campo usado como chave (default: 'id')
@@ -13,10 +15,8 @@ export default function DataTable({ columns, rows, selectedId, onSelect, rowKey 
         <thead className="bg-white border-b border-gray-200">
           <tr>
             {columns.map(col => (
-              <th
-                key={col.key}
-                className={`px-4 py-3 font-bold text-gray-800 ${col.align === 'right' ? 'text-right' : 'text-left'}`}
-              >
+              <th key={col.key}
+                className={`px-4 py-3 font-bold text-gray-800 ${col.align === 'right' ? 'text-right' : 'text-left'}`}>
                 {col.label}
               </th>
             ))}
@@ -33,9 +33,7 @@ export default function DataTable({ columns, rows, selectedId, onSelect, rowKey 
           {rows.map((row, i) => {
             const isSelected = selectedId !== undefined && row[rowKey] === selectedId
             return (
-              <tr
-                key={row[rowKey] ?? i}
-                onClick={() => onSelect?.(row)}
+              <tr key={row[rowKey] ?? i} onClick={() => onSelect?.(row)}
                 className={[
                   'cursor-pointer transition-colors',
                   isSelected
@@ -43,14 +41,15 @@ export default function DataTable({ columns, rows, selectedId, onSelect, rowKey 
                     : i % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100',
                 ].join(' ')}
               >
-                {columns.map(col => (
-                  <td
-                    key={col.key}
-                    className={`px-4 py-3 text-gray-700 ${col.align === 'right' ? 'text-right' : ''}`}
-                  >
-                    {row[col.key] ?? ''}
-                  </td>
-                ))}
+                {columns.map(col => {
+                  const val = row[col.key]
+                  return (
+                    <td key={col.key}
+                      className={`px-4 py-3 text-gray-700 ${col.align === 'right' ? 'text-right' : ''}`}>
+                      {React.isValidElement(val) ? val : (val ?? '')}
+                    </td>
+                  )
+                })}
               </tr>
             )
           })}

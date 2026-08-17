@@ -1,14 +1,11 @@
-// Perfis disponíveis
 export const ROLES = {
-  GESTOR: 'Gestor',
+  GESTOR:    'Gestor',
   ATENDENTE: 'Atendente',
-  PRODUTOR: 'Produtor',
+  PRODUTOR:  'Produtor',
 }
 
-// Quais módulos cada perfil pode acessar
-// key = rota / identificador do módulo
 export const PERMISSIONS = {
-  [ROLES.GESTOR]:    ['vendas', 'catalogo', 'producao', 'relatorios', 'gerenciamento'],
+  [ROLES.GESTOR]:    ['vendas', 'catalogo', 'producao', 'relatorios', 'gerenciamento', 'pedidosVenda'],
   [ROLES.ATENDENTE]: ['vendas', 'catalogo'],
   [ROLES.PRODUTOR]:  ['producao', 'catalogo'],
 }
