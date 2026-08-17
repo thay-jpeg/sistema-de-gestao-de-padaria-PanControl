@@ -1,14 +1,16 @@
+/**
+ * Cada registro = produção de UM produto (idProduto_FK único conforme MER).
+ * dataValidadeLote = min(dataProducao + diasValidadePadrao, min(validades dos lotes usados))
+ */
 export const PRODUCTIONS = [
   {
-    id: '00000113', code: '00000113', date: '17/06/2026',
-    items: [
-      { code: '020', name: 'Pão Caseiro',      price: 19900.00, qty: 1000 },
-      { code: '014', name: 'Pão Forma',        price:  1596.00, qty: 200  },
-      { code: '002', name: 'Cacetinho Francês',price:   649.00, qty: 50   },
-    ],
-    missing: [
-      { code: '020', name: 'Farinha de Trigo 10Kg', stock: 2,  missing: 10 },
-      { code: '024', name: 'Açúcar 5Kg',            stock: 6,  missing: 8  },
-    ],
+    id: 'PRD001', code: 'PRD001', idProduto: '001', nomeProduto: 'Pão Francês',
+    quantidadeProduzida: 200, custoTotalProducao: 8.50,
+    dataProducao: '09/08/2026', dataValidadeLote: '11/08/2026', idUsuario: 'USR003',
+  },
+  {
+    id: 'PRD002', code: 'PRD002', idProduto: '003', nomeProduto: 'Pão Forma',
+    quantidadeProduzida: 20, custoTotalProducao: 32.10,
+    dataProducao: '09/08/2026', dataValidadeLote: '14/08/2026', idUsuario: 'USR003',
   },
 ]
