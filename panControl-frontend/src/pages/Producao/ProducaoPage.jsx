@@ -44,6 +44,9 @@ export default function ProducaoPage() {
   const [selectedRow, setRow] = useState(null)
   const [prodSearch, setProdS] = useState('')
   const [ingSearch, setIngS] = useState('')
+  const [histSearch, setHistS] = useState('');
+  const [modalLotes, setModalLotes] = useState(false);
+  const [comprasIngrediente, setComprasIngrediente] = useState([]);
 
   // Buscando os produtos da API
   useEffect(() => {
@@ -65,11 +68,25 @@ export default function ProducaoPage() {
   const [prodQtd, setProdQtd] = useState('')
   const [dataProducao, setDataProd] = useState(getTodayISO())
   const [selectedProductId, setSelProdId] = useState('')
+  const [fichaTecnicaAtiva, setFichaTecnicaAtiva] = useState([])
 
   // modal registrar perda
   const [modalPerda, setModalPerda] = useState(false)
   const [perdaForm, setPerdaForm] = useState(EMPTY_PERDA)
   const [selProducao, setSelProducao] = useState(null)
+
+  useEffect(() => {
+    if (selectedProductId) {
+      api.get(`/fichastecnicas/produto/${selectedProductId}`)
+        .then(res => setFichaTecnicaAtiva(res.data))
+        .catch(err => {
+          console.log("Ficha técnica não encontrada ou vazia para este produto.");
+          setFichaTecnicaAtiva([]);
+        });
+    } else {
+      setFichaTecnicaAtiva([]);
+    }
+  }, [selectedProductId]);
 
   useEffect(() => {
     if (view === 'stock') {
@@ -89,7 +106,7 @@ export default function ProducaoPage() {
 
   // produto selecionado para produção
   const productForProd = useMemo(
-    () => products.find(p => p.idProduto === selectedProductId || p.codigoBarras === addCode || p.nomeProduto === addCode),
+    () => products.find(p => String(p.idProduto) === String(selectedProductId) || String(p.idProduto) === addCode || p.nomeProduto === addCode),
     [selectedProductId, addCode, products]
   )
 
@@ -97,23 +114,43 @@ export default function ProducaoPage() {
     if (!productForProd) return '';
     const dataProdBase = new Date(dataProducao + 'T12:00:00');
     dataProdBase.setDate(dataProdBase.getDate() + (productForProd.diasValidadePadrao || 0));
-    return formatarDataBR(dataProdBase.toISOString());
+
+    const ano = dataProdBase.getFullYear();
+    const mes = String(dataProdBase.getMonth() + 1).padStart(2, '0');
+    const dia = String(dataProdBase.getDate()).padStart(2, '0');
+
+    return `${dia}/${mes}/${ano}`;
   }, [productForProd, dataProducao]);
 
   const custoProducaoCalc = useMemo(() => {
-    return 0;
-  }, [productForProd, prodQtd]);
+    if (!productForProd || !prodQtd || fichaTecnicaAtiva.length === 0) return 0;
+
+    // o custo para fabricar 1 unidade do produto
+    const custoUnitarioProduto = fichaTecnicaAtiva.reduce((acumulador, itemFicha) => {
+
+      const idIng = itemFicha.idIngrediente;
+      const qtdeNecessaria = parseFloat(itemFicha.quantidadeNecessaria) || 0;
+
+      // custo médio att
+      const ingredienteBanco = ingredients.find(i => String(i.idIngrediente) === String(idIng));
+      const custoMedio = ingredienteBanco ? (parseFloat(ingredienteBanco.custoMedioUnitario) || 0) : 0;
+
+      return acumulador + (custoMedio * qtdeNecessaria);
+    }, 0);
+
+    return custoUnitarioProduto * (parseFloat(prodQtd) || 0);
+  }, [productForProd, prodQtd, ingredients, fichaTecnicaAtiva]);
 
   // Dados das tabelas
   const stockRows = useMemo(() => {
     const q = prodSearch.toLowerCase()
     return products
-      .filter(p => !q || p.nomeProduto.toLowerCase().includes(q) || String(p.codigoBarras).includes(q))
+      .filter(p => !q || p.nomeProduto.toLowerCase().includes(q) || String(p.idProduto).includes(q))
       .map(p => ({
         ...p,
         id: p.idProduto,
         name: p.nomeProduto,
-        code: p.codigoBarras,
+        code: p.idProduto,
         precoStr: `R$ ${Number(p.precoBalcao || 0).toFixed(2).replace('.', ',')}`,
         qtdeStr: String(p.quantidadeEstoque || 0),
         validity: p.diasValidadePadrao ? `${p.diasValidadePadrao} dias` : '-',
@@ -131,9 +168,9 @@ export default function ProducaoPage() {
           id: i.idIngrediente,
           name: i.nomeIngrediente,
           code: i.idIngrediente,
-          custoStr: `R$ ${Number(i.custoMedioUnitario || 0).toFixed(4).replace('.', ',')}`,
+          custoStr: `R$ ${Number(i.custoMedioUnitario || 0).toFixed(2).replace('.', ',')}`,
           qtdeStr: `${i.quantidadeEstoque} ${i.unidadeMedida}`,
-          validade: 'Ver Entradas', // A validade agora fica na tabela de Compras
+          validade: 'Ver Entradas',
           estoqueStatus: baixo
             ? <span className="text-xs text-red font-bold">⚠ Baixo</span>
             : <span className="text-xs text-green font-bold">OK</span>,
@@ -141,17 +178,24 @@ export default function ProducaoPage() {
       })
   }, [ingredients, ingSearch])
 
-  const producaoRows = useMemo(() =>
-    producoes.map(p => ({
-      ...p,
-      id: p.idProducao,
-      code: p.idProducao,
-      nomeProduto: products.find(prod => prod.idProduto === p.idProduto)?.nomeProduto || 'Produto ID: ' + p.idProduto,
-      dataProducao: formatarDataBR(p.dataProducao),
-      dataValidadeLote: formatarDataBR(p.dataValidade),
-      custoStr: p.lote,
-    }))
-    , [producoes, products])
+  const producaoRows = useMemo(() => {
+    const q = histSearch.toLowerCase();
+    return producoes
+      .filter(p => {
+        const loteStr = `LT-${String(p.idProducao).padStart(4, '0')}`.toLowerCase();
+        const prodNome = products.find(prod => prod.idProduto === p.idProduto)?.nomeProduto.toLowerCase() || '';
+        return !q || loteStr.includes(q) || prodNome.includes(q);
+      })
+      .map(p => ({
+        ...p,
+        id: p.idProducao,
+        code: `LT-${String(p.idProducao).padStart(4, '0')}`,
+        nomeProduto: products.find(prod => prod.idProduto === p.idProduto)?.nomeProduto || 'Produto ID: ' + p.idProduto,
+        dataProducao: formatarDataBR(p.dataProducao),
+        dataValidadeLote: formatarDataBR(p.dataValidade),
+        custoStr: `R$ ${Number(p.custoTotalProducao || 0).toFixed(2).replace('.', ',')}`,
+      }))
+  }, [producoes, products, histSearch])
 
   const idUsuarioLogado = 5;
 
@@ -161,17 +205,17 @@ export default function ProducaoPage() {
     if (!prodQtd || parseFloat(prodQtd) <= 0) { alert('Informe a quantidade produzida.'); return }
 
     const dataProdBase = new Date(dataProducao + 'T12:00:00');
-    dataProdBase.setDate(dataProdBase.getDate() + (productForProd.diasValidadePadrao || 1));
-    const dataValCalculada = dataProdBase.toISOString().split('T')[0];
+    dataProdBase.setDate(dataProdBase.getDate() + (productForProd.diasValidadePadrao || 0));
 
-    // código de lote automático
-    const loteGerado = `LT-${new Date().getTime().toString().slice(-6)}`;
-
+    const ano = dataProdBase.getFullYear();
+    const mes = String(dataProdBase.getMonth() + 1).padStart(2, '0');
+    const dia = String(dataProdBase.getDate()).padStart(2, '0');
+    const dataValCalculada = `${ano}-${mes}-${dia}`;
 
     const payload = {
       idProduto: productForProd.idProduto,
       quantidadeProduzida: parseFloat(prodQtd),
-      lote: loteGerado,
+      custoTotalProducao: custoProducaoCalc,
       dataValidade: dataValCalculada,
       dataProducao: `${dataProducao}T12:00:00`,
       idUsuario: idUsuarioLogado,
@@ -181,7 +225,9 @@ export default function ProducaoPage() {
       const res = await api.post('/producao', payload);
       setProducoes([...producoes, res.data]);
       setAddCode(''); setProdQtd(''); setSelProdId(''); setModalProd(false);
-      alert("Produção registrada com sucesso! Lote: " + loteGerado);
+
+      const loteReal = `LT-${String(res.data.idProducao).padStart(4, '0')}`;
+      alert("Produção registrada com sucesso! Lote: " + loteReal);
 
       setProducts(prev => prev.map(p => p.idProduto === productForProd.idProduto ? { ...p, quantidadeEstoque: (p.quantidadeEstoque || 0) + payload.quantidadeProduzida } : p));
 
@@ -204,10 +250,26 @@ export default function ProducaoPage() {
       idUsuario: idUsuarioLogado,
     };
 
-    try {
+   try {
       await api.post('/perdas', payload);
-      setPerdaForm(EMPTY_PERDA); setSelProducao(null); setModalPerda(false);
-      alert("Perda registrada com sucesso!");
+      
+      setProducts(prev => prev.map(p => {
+        if (p.idProduto === payload.idProduto) {
+          const estoqueAtual = p.quantidadeEstoque || 0;
+          return { ...p, quantidadeEstoque: Math.max(0, estoqueAtual - payload.quantidadePerdida) };
+        }
+        return p;
+      }));
+
+      if (payload.quantidadePerdida >= selProducao.quantidadeProduzida) {
+        alert("LOTE TODO PERDIDO!\nA perda foi registrada e o estoque do produto foi reduzido.");
+      } else {
+        alert("Perda registrada com sucesso!\nO estoque do produto foi atualizado.");
+      }
+
+      setPerdaForm(EMPTY_PERDA); 
+      setSelProducao(null); 
+      setModalPerda(false);
     } catch (error) {
       console.error("Erro ao registrar perda:", error);
       alert("Erro ao registrar a perda no sistema.");
@@ -218,6 +280,18 @@ export default function ProducaoPage() {
     setSelProducao(prod)
     setPerdaForm({ ...EMPTY_PERDA, dataPerda: getTodayISO() })
     setModalPerda(true)
+  }
+
+  async function openVerLotes() {
+    try {
+      const res = await api.get('/compras');
+      const lotes = res.data.filter(c => String(c.idIngrediente) === String(selectedRow.id));
+      setComprasIngrediente(lotes);
+      setModalLotes(true);
+    } catch (error) {
+      console.error("Erro ao buscar lotes:", error);
+      alert("Erro ao buscar as entradas deste ingrediente.");
+    }
   }
 
   useKeyboardShortcut([
@@ -238,12 +312,10 @@ export default function ProducaoPage() {
               <span className="font-bold text-sm w-28 text-right">Produções:</span>
               <div className="flex-1" />
               <Button variant="green" shortcut="F9" onClick={() => setModalProd(true)}>Novo+</Button>
-              <Button variant="red">Excluir</Button>
             </div>
             <SearchRow label="Estoque:" value={view === 'stock' ? prodSearch : ''} onChange={v => { setView('stock'); setProdS(v) }} placeholder="Todos" active={view === 'stock'} onClick={() => setView('stock')} />
             <SearchRow label="Ingredientes:" value={view === 'ingredients' ? ingSearch : ''} onChange={v => { setView('ingredients'); setIngS(v) }} placeholder="Todos" active={view === 'ingredients'} onClick={() => setView('ingredients')} />
-            <SearchRow label="Histórico:" value="" onChange={() => { }} placeholder="-" active={view === 'history'} onClick={() => setView('history')} />
-          </div>
+            <SearchRow label="Histórico:" value={view === 'history' ? histSearch : ''} onChange={v => { setView('history'); setHistS(v) }} placeholder="Todos" active={view === 'history'} onClick={() => setView('history')} />          </div>
         </div>
 
         {/* ── Tabelas ───────────────────────────────────────────────────── */}
@@ -261,20 +333,69 @@ export default function ProducaoPage() {
           )}
         </div>
 
-        {/* Botões contextuais */}
         <div className="flex justify-end gap-3">
           {view === 'history' && selProducao && (
             <Button variant="red" onClick={() => openRegistrarPerda(selProducao)}>
               Registrar Perda
             </Button>
           )}
-          {selectedRow && view !== 'history' && (
-            <Button variant="gold">
-              {view === 'stock' ? 'Alterar produto' : 'Alterar ingrediente'}
+          {selectedRow && view === 'ingredients' && (
+            <Button variant="gold" onClick={openVerLotes}>
+              Ver Lotes de Entrada
             </Button>
           )}
         </div>
       </main>
+
+      {/* ── Modal Ver Lotes do Ingrediente ─────────────────────────────── */}
+      <Modal isOpen={modalLotes} onClose={() => setModalLotes(false)} className="w-[700px]">
+        <div className="p-6">
+          <h2 className="font-bold text-lg text-gray-800 mb-4">
+            <span className="text-gold">{selectedRow?.name}</span>
+          </h2>
+          <div className="overflow-y-auto max-h-[300px] border border-gray-200 rounded">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-header text-white text-xs uppercase sticky top-0">
+                <tr>
+                  <th className="px-4 py-2">Cód. Entrada</th>
+                  <th className="px-4 py-2">Data Compra</th>
+                  <th className="px-4 py-2">Validade</th>
+                  <th className="px-4 py-2 text-right">Qtde Restante</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comprasIngrediente.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center py-4 text-gray-500">Nenhum lote com saldo encontrado.</td></tr>
+                ) : (
+                  comprasIngrediente.map((c, idx) => {
+                    const today = new Date(); today.setHours(12, 0, 0, 0);
+                    let vDate = null;
+                    if (c.dataValidade) {
+                      const [ano, mes, dia] = String(c.dataValidade).split('T')[0].split('-');
+                      vDate = new Date(Number(ano), Number(mes) - 1, Number(dia), 12, 0, 0);
+                    }
+                    const diff = vDate ? Math.round((vDate - today) / 86400000) : null;
+
+                    const vCls = diff === null ? '' : diff < 0 ? 'bg-red/10 text-red font-bold' : diff <= 7 ? 'bg-yellow-100 text-amber-600 font-bold' : '';
+
+                    return (
+                      <tr key={c.idCompras} className={`border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                        <td className="px-4 py-2.5 text-sm">{c.idCompras}</td>
+                        <td className="px-4 py-2.5 text-sm">{formatarDataBR(c.dataCompra)}</td>
+                        <td className={`px-4 py-2.5 text-sm ${vCls}`}>{formatarDataBR(c.dataValidade)}</td>
+                        <td className="px-4 py-2.5 text-sm text-right font-bold">{c.quantidadeRestante}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button variant="cream" onClick={() => setModalLotes(false)}>Fechar</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Modal Nova Produção ──────────────────────────────────────────── */}
       <Modal isOpen={modalProd} onClose={() => setModalProd(false)} className="w-[640px]">
@@ -288,24 +409,27 @@ export default function ProducaoPage() {
                 <input value={addCode} onChange={e => { setAddCode(e.target.value); setSelProdId('') }}
                   onKeyDown={e => {
                     if (e.key === 'Enter') {
-                      const found = products.find(p => p.codigoBarras === addCode.trim() || p.nomeProduto.toLowerCase() === addCode.toLowerCase().trim())
+
+                      const found = products.find(p => String(p.idProduto) === addCode.trim() || p.nomeProduto.toLowerCase() === addCode.toLowerCase().trim())
                       if (found) setSelProdId(found.idProduto)
                     }
                   }}
                   placeholder="Digite o código ou nome..."
                   className="flex-1 bg-input-bg border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold" />
                 <Button variant="brown" onClick={() => {
-                  const found = products.find(p => p.codigoBarras === addCode.trim() || p.nomeProduto.toLowerCase().includes(addCode.toLowerCase().trim()))
+
+                  const found = products.find(p => String(p.idProduto) === addCode.trim() || p.nomeProduto.toLowerCase().includes(addCode.toLowerCase().trim()))
                   if (found) setSelProdId(found.idProduto)
                   else alert('Produto não encontrado.')
                 }}>Buscar</Button>
               </div>
-              {addCode.length > 1 && !productForProd && (
+              {addCode.length > 0 && !productForProd && (
                 <div className="border border-gray-200 rounded-lg overflow-hidden mt-1 max-h-32 overflow-y-auto pan-scroll">
-                  {products.filter(p => p.nomeProduto.toLowerCase().includes(addCode.toLowerCase()) || String(p.codigoBarras).includes(addCode)).map(p => (
+
+                  {products.filter(p => p.nomeProduto.toLowerCase().includes(addCode.toLowerCase()) || String(p.idProduto).includes(addCode)).map(p => (
                     <button key={p.idProduto} onClick={() => { setAddCode(p.nomeProduto); setSelProdId(p.idProduto) }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-0">
-                      {p.codigoBarras} — {p.nomeProduto}
+                      {p.idProduto} — {p.nomeProduto}
                     </button>
                   ))}
                 </div>
@@ -319,8 +443,7 @@ export default function ProducaoPage() {
                 </svg>
                 <div>
                   <p className="text-sm font-bold text-green">{productForProd.name}</p>
-                  <p className="text-xs text-gray-500">Validade padrão: {productForProd.diasValidadePadrao} dia(s) · {(productForProd.fichasTecnica || []).length} ingrediente(s) na ficha</p>
-                </div>
+                  <p className="text-xs text-gray-500">Validade padrão: {productForProd.diasValidadePadrao} dia(s) · {fichaTecnicaAtiva.length} ingrediente(s) na ficha</p>                </div>
               </div>
             )}
 
