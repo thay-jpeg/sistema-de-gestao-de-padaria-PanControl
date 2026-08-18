@@ -6,25 +6,6 @@ import { useData, isoToBR, brToISO } from '@/context/DataContext'
 import useKeyboardShortcut from '@/hooks/useKeyboardShortcut'
 import api from '@/services/api'
 
-const maskCPFCNPJ = (v, tipoPessoa) => {
-  if (!v) return "";
-  v = v.replace(/\D/g, "");
-
-  if (tipoPessoa === 'PF') {
-    v = v.slice(0, 11); // em 11 dígitos
-    v = v.replace(/(\d{3})(\d)/, "$1.$2");
-    v = v.replace(/(\d{3})(\d)/, "$1.$2");
-    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-  } else {
-    v = v.slice(0, 14); // em 14 dígitos
-    v = v.replace(/^(\d{2})(\d)/, "$1.$2");
-    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
-    v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
-    v = v.replace(/(\d{4})(\d)/, "$1-$2");
-  }
-  return v;
-};
-
 const TABS = [
   { key: 'clientes', label: 'Clientes' },
   { key: 'usuarios', label: 'Usuários' },
@@ -35,7 +16,7 @@ const ING_SUB_TABS = [
   { key: 'compras', label: 'Compras / Entradas' },
 ]
 
-const EMPTY_CLIENT = { code: '', name: '', cpf: '', birth: '', country: 'Brasil', email: '', phone: '', cep: '', address: '', neighborhood: '', city: '', complement: '', tipoPessoa: 'PF', ativo: true, uf: '', numero: '' }
+const EMPTY_CLIENT = { code: '', name: '', cpf: '', birth: '', country: 'Brasil', email: '', phone: '+55', cep: '', address: '', neighborhood: '', city: '', complement: '', tipoPessoa: 'PF', ativo: true, uf: '', numero: '' }
 const EMPTY_ING = { name: '', unidadeMedida: '', quantidadeEstoque: '', estoqueMinimo: '', custoMedioUnitario: '', image: null }
 const EMPTY_COMPRA = { ingredienteId: '', quantidadeComprada: '', dataValidade: '', custoTotal: '', dataCompra: '' }
 const EMPTY_USER = { nomeUsuario: '', codigoAcesso: '', senhaHash: '', perfil: 'ATENDENTE', statusAtivo: true };
@@ -56,6 +37,8 @@ export default function GerenciamentoPage() {
   const [userForm, setUF] = useState(EMPTY_USER);
   const [selUser, setSelU] = useState(null);
   const [clientes, setClientes] = useState([]);
+  const [ingredientesList, setIngredientesList] = useState([]);
+  const [comprasList, setComprasList] = useState([]);
 
   // Busca os usuários na API
   useEffect(() => {
@@ -83,14 +66,17 @@ export default function GerenciamentoPage() {
     }
   }, [tab]);
 
-  const maskPhone = (v) => {
-    if (!v) return "";
-    v = v.replace(/\D/g, "");
-    // Telefone: (00) 00000-0000
-    v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
-    v = v.replace(/(\d)(\d{4})$/, "$1-$2");
-    return v.slice(0, 15);
-  };
+  // Busca os ingredientes na API
+  useEffect(() => {
+    if (tab === 'ingredientes') {
+      if (ingSubTab === 'lista') {
+        api.get('/ingredientes').then(res => setIngredientesList(res.data));
+      }
+      if (ingSubTab === 'compras') {
+        api.get('/compras').then(res => setComprasList(res.data));
+      }
+    }
+  }, [tab, ingSubTab]);
 
   // modal unificado
   const [modal, setModal] = useState({ open: false, mode: 'client', isNew: true })
@@ -103,33 +89,36 @@ export default function GerenciamentoPage() {
 
   const closeModal = () => setModal(m => ({ ...m, open: false }))
 
-  // ── Ingredientes filtrados ────────────────────────────────────────────────
+  //  ingredientes filtrados
   const filteredIngs = useMemo(() => {
     const q = ingSearch.toLowerCase().trim()
-    return q ? ingredients.filter(i => i.name.toLowerCase().includes(q) || i.code.includes(q)) : ingredients
-  }, [ingredients, ingSearch])
+    return q
+      ? ingredientesList.filter(i =>
+        i.nomeIngrediente.toLowerCase().includes(q) ||
+        String(i.idIngrediente).includes(q)
+      )
+      : ingredientesList
+  }, [ingredientesList, ingSearch])
 
-  // ── Compras filtradas ─────────────────────────────────────────────────────
+  // compras filtradas
   const filteredCompras = useMemo(() => {
     const q = compSearch.toLowerCase().trim()
-    return compras.filter(c => {
-      const ing = ingredients.find(i => i.id === c.ingredienteId)
-      if (!q) return true
-      return ing?.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)
-    }).map(c => ({
-      ...c,
-      nomeIngrediente: ingredients.find(i => i.id === c.ingredienteId)?.name || '?',
-    }))
-  }, [compras, compSearch, ingredients])
+    return q
+      ? comprasList.filter(c =>
+        c.nomeIngrediente.toLowerCase().includes(q) ||
+        String(c.idCompras).includes(q)
+      )
+      : comprasList
+  }, [comprasList, compSearch])
 
-  // ── Custo unitário calculado ao digitar ───────────────────────────────────
+  // custo unitário calculado ao digitar
   const custoUnitCalc = useMemo(() => {
     const tot = parseFloat(compraForm.custoTotal) || 0
     const qty = parseFloat(compraForm.quantidadeComprada) || 0
     return qty > 0 ? tot / qty : 0
   }, [compraForm.custoTotal, compraForm.quantidadeComprada])
 
-  // ── Abre modais ───────────────────────────────────────────────────────────
+  // abre modais 
   function openNewClient() { setSelC(null); setCF({ ...EMPTY_CLIENT, code: `0000${String(clients.length + 41).padStart(4, '0')}` }); setModal({ open: true, mode: 'client', isNew: true }) }
   async function openEditClient(c) {
     setSelC(c);
@@ -137,23 +126,21 @@ export default function GerenciamentoPage() {
     let formPreenchido = {
       ...EMPTY_CLIENT,
       name: c.nomeRazaoSocial,
-      cpf: maskCPFCNPJ(c.documentoCliente),
+      cpf: c.documentoCliente,
       tipoPessoa: c.tipoPessoa === 'J' ? 'PJ' : 'PF',
       birth: c.dataNascimento || '',
       ativo: c.ativo
     };
 
-    // Abre o modal imediatamente
     setModal({ open: true, mode: 'client', isNew: false });
 
     try {
-      // Busca o endereço do cliente
       const res = await api.get(`/enderecos/cliente/${c.idClienteAtacadista}`);
       const end = res.data;
 
       const nomeRuaCompleto = end.logradouro ? `${end.tipoLogradouro} ${end.logradouro}` : '';
 
-      // Atualiza o modal com os dados de endereço
+      // att o modal com os dados de endereço
       formPreenchido = {
         ...formPreenchido,
         cep: end.cep || '',
@@ -175,14 +162,17 @@ export default function GerenciamentoPage() {
 
     try {
       const resFone = await api.get(`/contatos/telefone/${c.idClienteAtacadista}`);
-      formPreenchido.phone = maskPhone(resFone.data);
+      formPreenchido.phone = resFone.data;
     } catch (e) { }
 
     setCF(formPreenchido);
   }
   function openNewIng() { setSelI(null); setIF({ ...EMPTY_ING }); setModal({ open: true, mode: 'ingredient', isNew: true }) }
-  function openEditIng(i) { setSelI(i); setIF({ ...i, validity: brToISO(i.validity) }); setModal({ open: true, mode: 'ingredient', isNew: false }) }
-  function openNewCompra() { setSelCo(null); setCompF({ ...EMPTY_COMPRA, dataCompra: brToISO(todayBR()) }); setModal({ open: true, mode: 'compra', isNew: true }) }
+  function openEditIng(i) {
+    setSelI(i);
+    setIF({ ...i, imagem: i.imagem, validity: brToISO(i.validity) });
+    setModal({ open: true, mode: 'ingredient', isNew: false });
+  } function openNewCompra() { setSelCo(null); setCompF({ ...EMPTY_COMPRA, dataCompra: brToISO(todayBR()) }); setModal({ open: true, mode: 'compra', isNew: true }) }
   function openNewUser() {
     setUF({ ...EMPTY_USER });
     setModal({ open: true, mode: 'user', isNew: true });
@@ -193,10 +183,10 @@ export default function GerenciamentoPage() {
     setModal({ open: true, mode: 'user', isNew: false });
   }
 
-  // ── Salva / exclui ────────────────────────────────────────────────────────
+  // salva / exclui
   async function saveClient() {
     try {
-      // Monta o pacote de dados do Cliente
+      // monta o pacote de dados do cliente
       const clientePayload = {
         nomeRazaoSocial: clientForm.name,
         tipoPessoa: clientForm.tipoPessoa === 'PJ' ? 'J' : 'F',
@@ -249,7 +239,7 @@ export default function GerenciamentoPage() {
           contatoCompleto: clientForm.phone
         });
       }
-      // Atualiza a tabela
+      // att a tabela
       if (modal.isNew) {
         setClientes([...clientes, clienteSalvo]);
       } else {
@@ -276,32 +266,106 @@ export default function GerenciamentoPage() {
       alert("Erro ao excluir. O cliente pode ter endereços ou pedidos vinculados no sistema.");
     }
   }
-  function saveIng() {
+
+  // carrega pra base64
+  function handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIF(f => ({ ...f, imagem: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function saveIng() {
+    // payload no formato do DTO
     const payload = {
-      ...ingForm,
+      nomeIngrediente: ingForm.nomeIngrediente || ingForm.name,
+      unidadeMedida: ingForm.unidadeMedida,
       quantidadeEstoque: parseFloat(ingForm.quantidadeEstoque) || 0,
       estoqueMinimo: parseFloat(ingForm.estoqueMinimo) || 0,
       custoMedioUnitario: parseFloat(ingForm.custoMedioUnitario) || 0,
+      imagem: ingForm.imagem
+    };
+
+    try {
+      if (modal.isNew) {
+        const res = await api.post('/ingredientes', payload);
+        setIngredientesList([...ingredientesList, res.data]);
+      } else {
+        const res = await api.put(`/ingredientes/${selIng.idIngrediente}`, payload);
+        setIngredientesList(ingredientesList.map(i => i.idIngrediente === selIng.idIngrediente ? res.data : i));
+      }
+      closeModal();
+    } catch (error) {
+      console.error("Erro ao salvar ingrediente:", error);
+      alert("Erro ao salvar o ingrediente.");
     }
-    if (modal.isNew) addIngredient(payload)
-    else updateIngredient(selIng.id, payload)
-    closeModal()
   }
-  function removeIng() {
-    if (!confirm('Excluir ingrediente? Ele será removido de todos os produtos.')) return
-    deleteIngredient(selIng.id); closeModal()
+  async function removeIng() {
+    if (!confirm('Excluir ingrediente? Ele será removido de todos os produtos.')) return;
+
+    try {
+      await api.delete(`/ingredientes/${selIng.idIngrediente}`);
+      setIngredientesList(ingredientesList.filter(i => i.idIngrediente !== selIng.idIngrediente));
+      closeModal();
+    } catch (error) {
+      console.error("Erro ao excluir ingrediente:", error);
+      alert("Erro ao excluir. O ingrediente pode estar vinculado a alguma ficha técnica.");
+    }
   }
-  function saveCompra() {
-    if (!compraForm.ingredienteId) { alert('Selecione um ingrediente.'); return }
+  async function saveCompra() {
+    if (!compraForm.ingredienteId) { alert('Selecione um ingrediente.'); return; }
+
+    const formatarNumero = (valor) => {
+      const stringFormatada = String(valor).replace(',', '.');
+      return parseFloat(stringFormatada) || 0;
+    };
+
+    const idUsuarioLogado = usuarios.length > 0 ? usuarios[0].idUsuario : 1;
+
     const payload = {
-      ...compraForm,
-      quantidadeComprada: parseFloat(compraForm.quantidadeComprada) || 0,
-      custoTotal: parseFloat(compraForm.custoTotal) || 0,
-      dataValidade: isoToBR(compraForm.dataValidade),
-      dataCompra: isoToBR(compraForm.dataCompra) || todayBR(),
-      idUsuario: 'USR001',
+      idIngrediente: parseInt(compraForm.ingredienteId),
+      quantidadeComprada: formatarNumero(compraForm.quantidadeComprada),
+      custoTotal: formatarNumero(compraForm.custoTotal),
+      dataValidade: compraForm.dataValidade,
+      dataCompra: compraForm.dataCompra ? `${compraForm.dataCompra}T12:00:00` : null,
+      idUsuario: idUsuarioLogado
+    };
+
+    try {
+      const res = await api.post('/compras', payload);
+
+      // add a compra na lista de compras
+      setComprasList([...comprasList, res.data]);
+
+      // att o ingrediente correspondente na lista principal
+      setIngredientesList(prev => prev.map(ing => {
+        if (ing.idIngrediente === payload.idIngrediente) {
+
+          const estoqueAtual = parseFloat(ing.quantidadeEstoque) || 0;
+          const custoAtual = parseFloat(ing.custoMedioUnitario) || 0;
+
+          const novoEstoque = estoqueAtual + payload.quantidadeComprada;
+          const novoCustoMedio = ((estoqueAtual * custoAtual) + payload.custoTotal) / novoEstoque;
+
+          return {
+            ...ing,
+            quantidadeEstoque: novoEstoque,
+            custoMedioUnitario: novoCustoMedio
+          };
+        }
+        return ing;
+      }));
+
+      closeModal();
+      alert("Entrada registrada e estoque atualizado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar compra:", error);
+      alert("Erro ao registrar a entrada. Tente acessar a aba 'Usuários' primeiro para carregar o usuário logado.");
     }
-    addCompra(payload); closeModal()
   }
   function saveUser() {
     if (modal.isNew) {
@@ -350,7 +414,6 @@ export default function GerenciamentoPage() {
         return;
       }
 
-      // Preenche os campos automaticamente no formulário
       setCF(prev => ({
         ...prev,
         cep: data.cep,
@@ -364,7 +427,7 @@ export default function GerenciamentoPage() {
     }
   }
 
-  // ── Atalhos de teclado ────────────────────────────────────────────────────
+  // atalhos de teclado
   useKeyboardShortcut([
     {
       key: 'F9', fn: () => {
@@ -438,8 +501,7 @@ export default function GerenciamentoPage() {
                     <td className="px-4 py-3 font-mono text-gray-500">{c.idClienteAtacadista}</td>
                     <td className="px-4 py-3 font-semibold">{c.nomeRazaoSocial}</td>
 
-                    {/* Aplica a máscara */}
-                    <td className="px-4 py-3">{maskCPFCNPJ(c.documentoCliente)}</td>
+                    <td className="px-4 py-3">{c.documentoCliente}</td>
 
                     <td className="px-4 py-3">
                       {/* Converte o J/F do banco*/}
@@ -547,14 +609,14 @@ export default function GerenciamentoPage() {
                       {filteredIngs.map((i, idx) => {
                         const baixo = i.quantidadeEstoque <= i.estoqueMinimo
                         return (
-                          <tr key={i.id} onClick={() => openEditIng(i)}
+                          <tr key={i.idIngrediente} onClick={() => openEditIng(i)}
                             className={`cursor-pointer hover:bg-yellow-50 transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                            <td className="px-4 py-3 font-mono text-gray-500">{i.code}</td>
-                            <td className="px-4 py-3 font-semibold">{i.name}</td>
+                            <td className="px-4 py-3 font-mono text-gray-500">{i.idIngrediente}</td>
+                            <td className="px-4 py-3 font-semibold">{i.nomeIngrediente}</td>
                             <td className="px-4 py-3">{i.unidadeMedida}</td>
                             <td className="px-4 py-3 text-right">{i.quantidadeEstoque}</td>
                             <td className="px-4 py-3 text-right">{i.estoqueMinimo}</td>
-                            <td className="px-4 py-3 text-right">R$ {Number(i.custoMedioUnitario || 0).toFixed(4)}</td>
+                            <td className="px-4 py-3 text-right">R$ {Number(i.custoMedioUnitario || 0).toFixed(2).replace('.', ',')}</td>
                             <td className="px-4 py-3">
                               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${baixo ? 'bg-red/10 text-red' : 'bg-green/10 text-green'}`}>
                                 {baixo ? '⚠ Baixo' : 'OK'}
@@ -565,14 +627,14 @@ export default function GerenciamentoPage() {
                       })}
                       {filteredIngs.length === 0 && (
                         <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">
-                          {ingredients.length === 0 ? 'Nenhum ingrediente. Clique em "+ Novo".' : 'Nenhum resultado.'}
+                          {ingredientesList.length === 0 ? 'Nenhum ingrediente. Clique em "+ Novo".' : 'Nenhum resultado.'}
                         </td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
                 <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
-                  {ingredients.length} ingrediente(s) cadastrado(s)
+                  {ingredientesList.length} ingrediente(s) cadastrado(s)
                 </div>
               </>
             )}
@@ -596,21 +658,32 @@ export default function GerenciamentoPage() {
                     </thead>
                     <tbody>
                       {filteredCompras.map((c, idx) => {
-                        const today = new Date(); today.setHours(0, 0, 0, 0)
-                        const [dd, mm, yy] = (c.dataValidade || '').split('/')
-                        const vDate = c.dataValidade ? new Date(Number(yy), Number(mm) - 1, Number(dd)) : null
-                        const diff = vDate ? Math.round((vDate - today) / 86400000) : null
-                        const vCls = diff === null ? '' : diff < 0 ? 'text-red font-bold' : diff <= 7 ? 'text-amber-600 font-bold' : ''
+                        const today = new Date();
+                        today.setHours(12, 0, 0, 0);
+
+                        let vDate = null;
+                        if (c.dataValidade) {
+                          const [ano, mes, dia] = String(c.dataValidade).split('T')[0].split('-');
+                          vDate = new Date(Number(ano), Number(mes) - 1, Number(dia), 12, 0, 0);
+                        }
+                        const diff = vDate ? Math.round((vDate - today) / 86400000) : null;
+
+                        const vCls = diff === null ? '' : diff < 0 ? 'text-red font-bold' : diff <= 7 ? 'text-amber-600 font-bold' : '';
+
+                        const custoUnit = c.quantidadeComprada > 0 ? (c.custoTotal / c.quantidadeComprada) : 0;
+
                         return (
-                          <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                            <td className="px-4 py-2.5 font-mono text-gray-500 text-xs">{c.id}</td>
+                          <tr key={c.idCompras} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                            <td className="px-4 py-2.5 font-mono text-gray-500 text-xs">{c.idCompras}</td>
                             <td className="px-4 py-2.5 font-semibold">{c.nomeIngrediente}</td>
                             <td className="px-4 py-2.5 text-right">{c.quantidadeComprada}</td>
                             <td className="px-4 py-2.5 text-right">{c.quantidadeRestante}</td>
-                            <td className="px-4 py-2.5">{c.dataCompra}</td>
-                            <td className={`px-4 py-2.5 ${vCls}`}>{c.dataValidade}</td>
+
+                            <td className="px-4 py-2.5">{formatarDataBR(c.dataCompra)}</td>
+                            <td className={`px-4 py-2.5 ${vCls}`}>{formatarDataBR(c.dataValidade)}</td>
+
                             <td className="px-4 py-2.5 text-right">R$ {Number(c.custoTotal || 0).toFixed(2).replace('.', ',')}</td>
-                            <td className="px-4 py-2.5 text-right">R$ {Number(c.custoUnitario || 0).toFixed(4)}</td>
+                            <td className="px-4 py-2.5 text-right">R$ {custoUnit.toFixed(2).replace('.', ',')}</td>
                           </tr>
                         )
                       })}
@@ -621,7 +694,7 @@ export default function GerenciamentoPage() {
                   </table>
                 </div>
                 <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
-                  {compras.length} entrada(s) registrada(s)
+                  {comprasList.length} entrada(s) registrada(s)
                 </div>
               </>
             )}
@@ -642,8 +715,13 @@ export default function GerenciamentoPage() {
             <div className="flex-1 grid grid-cols-3 gap-3">
               <div className="col-span-1 flex flex-col gap-1">
                 <label className="text-xs font-semibold text-gray-500 uppercase">Tipo Pessoa</label>
-                <select value={clientForm.tipoPessoa || 'PF'} onChange={e => setCF(f => ({ ...f, tipoPessoa: e.target.value }))}
-                  className="bg-input-bg border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold">
+                <select
+                  value={clientForm.tipoPessoa || 'PF'}
+                  onChange={e => setCF(f => ({ ...f, tipoPessoa: e.target.value }))}
+                  disabled={!modal.isNew}
+                  className={`border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold 
+                    ${!modal.isNew ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-input-bg text-gray-700'}`}
+                >
                   <option value="PF">PF — Física</option>
                   <option value="PJ">PJ — Jurídica</option>
                 </select>
@@ -653,14 +731,12 @@ export default function GerenciamentoPage() {
                 label={clientForm.tipoPessoa === 'PJ' ? 'CNPJ:' : 'CPF:'}
                 value={clientForm.cpf}
                 onChange={v => setCF(f => ({ ...f, cpf: v }))}
-                maskType="cpfCnpj"
-                tipoPessoa={clientForm.tipoPessoa}
                 disabled={!modal.isNew}
               />
               <CF label="Nascimento:" value={clientForm.birth} onChange={v => setCF(f => ({ ...f, birth: v }))} type="date" />
               <CF label="País:" value={clientForm.country} onChange={v => setCF(f => ({ ...f, country: v }))} />
               <CF label="E-mail:" value={clientForm.email} onChange={v => setCF(f => ({ ...f, email: v }))} className="col-span-2" />
-              <CF label="Tel.:" value={clientForm.phone} onChange={v => setCF(f => ({ ...f, phone: v }))} maskType="phone" />
+              <PhoneInput label="Tel.:" value={clientForm.phone} onChange={v => setCF(f => ({ ...f, phone: v }))} />
               <CF label="CEP:" value={clientForm.cep} onChange={v => setCF(f => ({ ...f, cep: v }))} onBlur={() => buscarCEP(clientForm.cep)} />
               <CF label="UF:" value={clientForm.uf} onChange={v => setCF(f => ({ ...f, uf: v }))} />
               <CF label="Cidade:" value={clientForm.city} onChange={v => setCF(f => ({ ...f, city: v }))} />
@@ -727,17 +803,31 @@ export default function GerenciamentoPage() {
         <div className="p-6">
           <h2 className="font-bold text-lg mb-4">{modal.isNew ? 'Novo Ingrediente' : 'Editar Ingrediente'}</h2>
           <div className="flex gap-5 mb-4">
-            <div className="w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-gold transition">
-              <span className="text-gray-400 text-xs text-center">Foto</span>
-            </div>
+            <label
+              htmlFor="upload-foto"
+              className="relative w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-gold transition overflow-hidden"
+            >
+              {ingForm.imagem ? (
+                <img src={ingForm.imagem} alt="Prévia" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-gray-400 text-xs text-center font-semibold">+ Adicionar<br />Foto</span>
+              )}
+              <input
+                type="file"
+                id="upload-foto"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+            </label>
             <div className="flex-1 grid grid-cols-2 gap-3">
               {!modal.isNew && (
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-500 uppercase">Código</label>
-                  <div className="bg-input-bg border border-gray-200 rounded px-3 py-2 text-sm font-mono text-gray-500">{selIng?.code}</div>
+                  <div className="bg-input-bg border border-gray-200 rounded px-3 py-2 text-sm font-mono text-gray-500">{selIng?.idIngrediente}</div>
                 </div>
               )}
-              <CF label="Descrição:" value={ingForm.name} onChange={v => setIF(f => ({ ...f, name: v }))} className="col-span-2" />
+              <CF label="Descrição:" value={ingForm.nomeIngrediente || ingForm.name} onChange={v => setIF(f => ({ ...f, nomeIngrediente: v, name: v }))} className="col-span-2" />
               <CF label="Unid. Medida:" value={ingForm.unidadeMedida} onChange={v => setIF(f => ({ ...f, unidadeMedida: v }))} />
               <CF label="Qtde Estoque:" value={ingForm.quantidadeEstoque} onChange={v => setIF(f => ({ ...f, quantidadeEstoque: v }))} type="number" />
               <CF label="Estoque Mínimo:" value={ingForm.estoqueMinimo} onChange={v => setIF(f => ({ ...f, estoqueMinimo: v }))} type="number" />
@@ -762,11 +852,11 @@ export default function GerenciamentoPage() {
               <select value={compraForm.ingredienteId} onChange={e => setCompF(f => ({ ...f, ingredienteId: e.target.value }))}
                 className="bg-input-bg border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold">
                 <option value="">Selecione...</option>
-                {ingredients.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unidadeMedida})</option>)}
+                {ingredientesList.map(i => <option key={i.idIngrediente} value={i.idIngrediente}>{i.nomeIngrediente} ({i.unidadeMedida})</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <CF label={`Qtde Comprada (${ingredients.find(i => i.id === compraForm.ingredienteId)?.unidadeMedida || 'un'}):`}
+              <CF label={`Qtde Comprada (${ingredientesList.find(i => String(i.idIngrediente) === String(compraForm.ingredienteId))?.unidadeMedida || 'un'}):`}
                 value={compraForm.quantidadeComprada} onChange={v => setCompF(f => ({ ...f, quantidadeComprada: v }))} type="number" />
               <CF label="Custo Total (R$):" value={compraForm.custoTotal} onChange={v => setCompF(f => ({ ...f, custoTotal: v }))} type="number" />
               <CF label="Data da Compra:" value={compraForm.dataCompra} onChange={v => setCompF(f => ({ ...f, dataCompra: v }))} type="date" />
@@ -775,7 +865,7 @@ export default function GerenciamentoPage() {
             {custoUnitCalc > 0 && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between">
                 <span className="text-sm font-semibold text-gray-600">Custo unitário calculado:</span>
-                <span className="text-lg font-bold text-green">R$ {custoUnitCalc.toFixed(4)}</span>
+                <span className="text-lg font-bold text-green">R$ {custoUnitCalc.toFixed(2).replace('.', ',')}</span>
               </div>
             )}
           </div>
@@ -788,22 +878,76 @@ export default function GerenciamentoPage() {
   )
 }
 
-function CF({ label, value, onChange, onBlur, type = 'text', className = '', maskType, disabled = false, tipoPessoa = 'PF' }) {
-  const handleChange = (e) => {
-    let val = e.target.value;
-    if (maskType === 'cpfCnpj') val = maskCPFCNPJ(val, tipoPessoa);
-    if (maskType === 'phone') val = maskPhone(val);
-    onChange?.(val);
-  };
-
+function CF({ label, value, onChange, onBlur, type = 'text', className = '', disabled = false }) {
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       {label && <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>}
       <input
-        type={type} value={value ?? ''} onChange={handleChange} onBlur={onBlur} disabled={disabled}
+        type={type}
+        value={value ?? ''}
+        onChange={e => onChange?.(e.target.value)}
+        onBlur={onBlur}
+        disabled={disabled}
         className={`border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold w-full 
           ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-input-bg text-gray-700'}`}
       />
     </div>
   );
 }
+
+function PhoneInput({ label, value, onChange, disabled = false }) {
+
+  const val = String(value || '');
+
+  let flag = '🌐';
+  let maxLength = 15;
+
+  if (val.startsWith('+55')) {
+    flag = '🇧🇷';
+    maxLength = 14;
+  } else if (val.startsWith('+595')) {
+    flag = '🇵🇾';
+    maxLength = 13;
+  } else if (val.startsWith('+54')) {
+    flag = '🇦🇷';
+    maxLength = 14;
+  }
+
+  const handleChange = (e) => {
+    let v = e.target.value.replace(/[^\d+]/g, '');
+
+    if (v.indexOf('+') > 0) {
+      v = v.replace(/\+/g, '');
+      v = '+' + v;
+    }
+
+    if (v.length <= maxLength) {
+      onChange?.(v);
+    }
+  };
+
+
+  return (
+    <div className="flex flex-col gap-1">
+      {label && <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>}
+      <div className="relative flex items-center">
+        <span className="absolute left-3 text-base pointer-events-none select-none">{flag}</span>
+        <input
+          type="text"
+          value={val}
+          onChange={handleChange}
+          disabled={disabled}
+          placeholder="+55..."
+          className={`pl-9 pr-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-gold w-full 
+            ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-input-bg text-gray-700'}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+const formatarDataBR = (dataIso) => {
+  if (!dataIso) return '';
+  const [ano, mes, dia] = dataIso.split('T')[0].split('-');
+  return `${dia}/${mes}/${ano}`;
+};

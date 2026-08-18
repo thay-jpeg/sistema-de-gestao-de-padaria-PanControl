@@ -62,6 +62,7 @@ public class IngredienteService {
     private void mapearDtoParaEntidade(IngredienteRequestDTO dto, Ingrediente entidade) {
         entidade.setNomeIngrediente(dto.getNomeIngrediente());
         entidade.setUnidadeMedida(dto.getUnidadeMedida());
+        entidade.setImagem(dto.getImagem());
         entidade.setQuantidadeEstoque(dto.getQuantidadeEstoque());
         entidade.setEstoqueMinimo(dto.getEstoqueMinimo());
         entidade.setCustoMedioUnitario(dto.getCustoMedioUnitario());
@@ -71,6 +72,7 @@ public class IngredienteService {
         IngredienteResponseDTO dto = new IngredienteResponseDTO();
         dto.setIdIngrediente(entidade.getIdIngrediente());
         dto.setNomeIngrediente(entidade.getNomeIngrediente());
+        dto.setImagem(entidade.getImagem());
         dto.setUnidadeMedida(entidade.getUnidadeMedida());
         dto.setQuantidadeEstoque(entidade.getQuantidadeEstoque());
         dto.setEstoqueMinimo(entidade.getEstoqueMinimo());
