@@ -151,18 +151,18 @@ export default function GerenciamentoPage() {
       const res = await api.get(`/enderecos/cliente/${c.idClienteAtacadista}`);
       const end = res.data;
 
-      const nomeRuaCompleto = end.logradouro ? `${end.logradouro.tipoLogradouro.nomeTipoLogradouro} ${end.logradouro.nomeLogradouro}` : '';
+      const nomeRuaCompleto = end.logradouro ? `${end.tipoLogradouro} ${end.logradouro}` : '';
 
       // Atualiza o modal com os dados de endereço
       formPreenchido = {
         ...formPreenchido,
         cep: end.cep || '',
-        uf: end.cidade?.uf?.siglaUF || '',
-        city: end.cidade?.nomeCidade || '',
+        uf: end.uf || '',
+        city: end.cidade || '',
         address: nomeRuaCompleto,
-        numero: end.numeroEnd || '',
-        neighborhood: end.bairro?.nomeBairro || '',
-        complement: end.complementoEnd || ''
+        numero: end.numero || '',
+        neighborhood: end.bairro || '',
+        complement: end.complemento || ''
       };
     } catch (error) {
       console.log("Este cliente ainda não possui um endereço salvo no banco.");
@@ -237,13 +237,18 @@ export default function GerenciamentoPage() {
       await api.post('/enderecos', enderecoPayload);
 
       if (clientForm.email) {
-        await api.post(`/contatos/email?idCliente=${clienteSalvo.idClienteAtacadista}&emailCompleto=${clientForm.email}`);
+        await api.post('/contatos/email', {
+          idCliente: clienteSalvo.idClienteAtacadista,
+          contatoCompleto: clientForm.email
+        });
       }
 
       if (clientForm.phone) {
-        await api.post(`/contatos/telefone?idCliente=${clienteSalvo.idClienteAtacadista}&telefoneCompleto=${clientForm.phone}`);
+        await api.post('/contatos/telefone', {
+          idCliente: clienteSalvo.idClienteAtacadista,
+          contatoCompleto: clientForm.phone
+        });
       }
-
       // Atualiza a tabela
       if (modal.isNew) {
         setClientes([...clientes, clienteSalvo]);

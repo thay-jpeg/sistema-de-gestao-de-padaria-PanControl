@@ -1,7 +1,6 @@
 package com.padaria.backend.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,59 +14,48 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.padaria.backend.model.Ingrediente;
-import com.padaria.backend.repository.IngredienteRepository;
+import com.padaria.backend.dto.IngredienteRequestDTO;
+import com.padaria.backend.dto.IngredienteResponseDTO;
+import com.padaria.backend.service.IngredienteService;
 
 @RestController
 @RequestMapping("/api/ingredientes")
 public class IngredienteController {
 
     @Autowired
-    private IngredienteRepository ingredienteRepository;
+    private IngredienteService ingredienteService;
 
     @PostMapping
-    public ResponseEntity<Ingrediente> criarIngrediente(@RequestBody Ingrediente novoIngrediente) {
-        Ingrediente ingredienteSalvo = ingredienteRepository.save(novoIngrediente);
-        return new ResponseEntity<>(ingredienteSalvo, HttpStatus.CREATED);
+    public ResponseEntity<IngredienteResponseDTO> criarIngrediente(@RequestBody IngredienteRequestDTO dto) {
+        return new ResponseEntity<>(ingredienteService.criarIngrediente(dto), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<Ingrediente>> listarIngredientes() {
-        return new ResponseEntity<>(ingredienteRepository.findAll(), HttpStatus.OK);
+    public ResponseEntity<List<IngredienteResponseDTO>> listarIngredientes() {
+        return new ResponseEntity<>(ingredienteService.listarIngredientes(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ingrediente> buscarIngredientePorId(@PathVariable Integer id) {
-        Optional<Ingrediente> ingrediente = ingredienteRepository.findById(id);
-        return ingrediente.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                          .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<IngredienteResponseDTO> buscarIngredientePorId(@PathVariable Integer id) {
+        IngredienteResponseDTO ingrediente = ingredienteService.buscarIngredientePorId(id);
+        if (ingrediente != null) {
+            return new ResponseEntity<>(ingrediente, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Ingrediente> atualizarIngrediente(@PathVariable Integer id, @RequestBody Ingrediente ingredienteAtualizado) {
-        Optional<Ingrediente> ingredienteExistente = ingredienteRepository.findById(id);
-        
-        if (ingredienteExistente.isPresent()) {
-            Ingrediente ingrediente = ingredienteExistente.get();
-            
-            ingrediente.setNomeIngrediente(ingredienteAtualizado.getNomeIngrediente());
-            ingrediente.setUnidadeMedida(ingredienteAtualizado.getUnidadeMedida());
-            ingrediente.setQuantidadeEstoque(ingredienteAtualizado.getQuantidadeEstoque());
-            ingrediente.setEstoqueMinimo(ingredienteAtualizado.getEstoqueMinimo());
-            ingrediente.setCustoMedioUnitario(ingredienteAtualizado.getCustoMedioUnitario());
-            
-            Ingrediente ingredienteSalvo = ingredienteRepository.save(ingrediente);
-            return new ResponseEntity<>(ingredienteSalvo, HttpStatus.OK);
+    public ResponseEntity<IngredienteResponseDTO> atualizarIngrediente(@PathVariable Integer id, @RequestBody IngredienteRequestDTO dto) {
+        IngredienteResponseDTO atualizado = ingredienteService.atualizarIngrediente(id, dto);
+        if (atualizado != null) {
+            return new ResponseEntity<>(atualizado, HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarIngrediente(@PathVariable Integer id) {
-        Optional<Ingrediente> ingredienteExistente = ingredienteRepository.findById(id);
-        
-        if (ingredienteExistente.isPresent()) {
-            ingredienteRepository.deleteById(id);
+        if (ingredienteService.deletarIngrediente(id)) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);

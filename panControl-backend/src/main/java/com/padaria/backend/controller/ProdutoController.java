@@ -1,7 +1,6 @@
 package com.padaria.backend.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,69 +14,48 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.padaria.backend.model.Produto;
-import com.padaria.backend.repository.ProdutoRepository;
+import com.padaria.backend.dto.ProdutoRequestDTO;
+import com.padaria.backend.dto.ProdutoResponseDTO;
+import com.padaria.backend.service.ProdutoService;
 
 @RestController
 @RequestMapping("/api/produtos")
 public class ProdutoController {
 
     @Autowired
-    private ProdutoRepository produtoRepository;
+    private ProdutoService produtoService;
 
     @PostMapping
-    public ResponseEntity<Produto> criarProduto(@RequestBody Produto novoProduto) {
-        if(novoProduto.getQuantidadeEstoque() == null) {
-            novoProduto.setQuantidadeEstoque(0);
-        }
-        Produto produtoSalvo = produtoRepository.save(novoProduto);
-        return new ResponseEntity<>(produtoSalvo, HttpStatus.CREATED);
+    public ResponseEntity<ProdutoResponseDTO> criarProduto(@RequestBody ProdutoRequestDTO dto) {
+        return new ResponseEntity<>(produtoService.criarProduto(dto), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<Produto>> listarProdutos() {
-        return new ResponseEntity<>(produtoRepository.findAll(), HttpStatus.OK);
+    public ResponseEntity<List<ProdutoResponseDTO>> listarProdutos() {
+        return new ResponseEntity<>(produtoService.listarProdutos(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Produto> buscarProdutoPorId(@PathVariable Integer id) {
-        Optional<Produto> produto = produtoRepository.findById(id);
-        return produto.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                      .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<ProdutoResponseDTO> buscarProdutoPorId(@PathVariable Integer id) {
+        ProdutoResponseDTO produto = produtoService.buscarProdutoPorId(id);
+        if (produto != null) {
+            return new ResponseEntity<>(produto, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Produto> atualizarProduto(@PathVariable Integer id, @RequestBody Produto produtoAtualizado) {
-        Optional<Produto> produtoExistente = produtoRepository.findById(id);
-        
-        if (produtoExistente.isPresent()) {
-            Produto produto = produtoExistente.get();
-            
-            produto.setNomeProduto(produtoAtualizado.getNomeProduto());
-            produto.setCodigoBarras(produtoAtualizado.getCodigoBarras());
-            produto.setDiasValidadePadrao(produtoAtualizado.getDiasValidadePadrao());
-            produto.setPercentualICMS(produtoAtualizado.getPercentualICMS());
-            produto.setPercentualLucroBalcao(produtoAtualizado.getPercentualLucroBalcao());
-            produto.setPercentualLucroAtacado(produtoAtualizado.getPercentualLucroAtacado());
-            produto.setPrecoBalcao(produtoAtualizado.getPrecoBalcao());
-            produto.setPrecoAtacado(produtoAtualizado.getPrecoAtacado());
-            
-            if (produtoAtualizado.getQuantidadeEstoque() != null) {
-                produto.setQuantidadeEstoque(produtoAtualizado.getQuantidadeEstoque());
-            }
-            
-            Produto produtoSalvo = produtoRepository.save(produto);
-            return new ResponseEntity<>(produtoSalvo, HttpStatus.OK);
+    public ResponseEntity<ProdutoResponseDTO> atualizarProduto(@PathVariable Integer id, @RequestBody ProdutoRequestDTO dto) {
+        ProdutoResponseDTO atualizado = produtoService.atualizarProduto(id, dto);
+        if (atualizado != null) {
+            return new ResponseEntity<>(atualizado, HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarProduto(@PathVariable Integer id) {
-        Optional<Produto> produtoExistente = produtoRepository.findById(id);
-        
-        if (produtoExistente.isPresent()) {
-            produtoRepository.deleteById(id);
+        if (produtoService.deletarProduto(id)) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);

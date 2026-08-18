@@ -1,81 +1,62 @@
 package com.padaria.backend.controller;
 
-import com.padaria.backend.model.Usuario;
-import com.padaria.backend.repository.UsuarioRepository;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Optional;
+import com.padaria.backend.dto.UsuarioRequestDTO;
+import com.padaria.backend.dto.UsuarioResponseDTO;
+import com.padaria.backend.service.UsuarioService;
 
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private UsuarioService usuarioService;
 
-    // POST para criar um novo usuário
     @PostMapping
-    public ResponseEntity<Usuario> criarUsuario(@RequestBody Usuario novoUsuario) {
-        // Como statusAtivo já tem default, garantimos que seja salvo corretamente
-        if(novoUsuario.getStatusAtivo() == null) {
-            novoUsuario.setStatusAtivo(true);
-        }
-        Usuario usuarioSalvo = usuarioRepository.save(novoUsuario);
-        return new ResponseEntity<>(usuarioSalvo, HttpStatus.CREATED);
+    public ResponseEntity<UsuarioResponseDTO> criarUsuario(@RequestBody UsuarioRequestDTO dto) {
+        return new ResponseEntity<>(usuarioService.criarUsuario(dto), HttpStatus.CREATED);
     }
 
-    // GET para listar os usuários
     @GetMapping
-    public ResponseEntity<List<Usuario>> listarUsuarios() {
-        return new ResponseEntity<>(usuarioRepository.findAll(), HttpStatus.OK);
+    public ResponseEntity<List<UsuarioResponseDTO>> listarUsuarios() {
+        return new ResponseEntity<>(usuarioService.listarUsuarios(), HttpStatus.OK);
     }
 
-    // GET para listar um usuario específico pelo ID
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> buscarUsuarioPorId(@PathVariable Integer id) {
-        Optional<Usuario> usuario = usuarioRepository.findById(id);
-
-        if (usuario.isPresent()) {
-            return new ResponseEntity<>(usuario.get(), HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404 se não achar
-    }
-
-    // PUT para atualizar um usuario existente
-    @PutMapping("/{id}")
-    public ResponseEntity<Usuario> atualizarUsuario(@PathVariable Integer id, @RequestBody Usuario usuarioAtualizado) {
-        Optional<Usuario> usuarioExistente = usuarioRepository.findById(id);
-
-        if (usuarioExistente.isPresent()) {
-            Usuario usuario = usuarioExistente.get();
-
-            usuario.setNomeUsuario(usuarioAtualizado.getNomeUsuario());
-            usuario.setCodigoAcesso(usuarioAtualizado.getCodigoAcesso());
-            usuario.setSenhaHash(usuarioAtualizado.getSenhaHash());
-            usuario.setPerfil(usuarioAtualizado.getPerfil());
-
-            if (usuarioAtualizado.getStatusAtivo() != null) {
-                usuario.setStatusAtivo(usuarioAtualizado.getStatusAtivo());
-            }
-
-            Usuario usuarioSalvo = usuarioRepository.save(usuario);
-            return new ResponseEntity<>(usuarioSalvo, HttpStatus.OK);
+    public ResponseEntity<UsuarioResponseDTO> buscarUsuarioPorId(@PathVariable Integer id) {
+        UsuarioResponseDTO usuario = usuarioService.buscarUsuarioPorId(id);
+        if (usuario != null) {
+            return new ResponseEntity<>(usuario, HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    // DELETE para deletar um usuario existente
+    @PutMapping("/{id}")
+    public ResponseEntity<UsuarioResponseDTO> atualizarUsuario(@PathVariable Integer id, @RequestBody UsuarioRequestDTO dto) {
+        UsuarioResponseDTO atualizado = usuarioService.atualizarUsuario(id, dto);
+        if (atualizado != null) {
+            return new ResponseEntity<>(atualizado, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarUsuario(@PathVariable Integer id) {
-        Optional<Usuario> usuarioExistente = usuarioRepository.findById(id);
-
-        if (usuarioExistente.isPresent()) {
-            usuarioRepository.deleteById(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT); // 204 indica sucesso sem retornar corpo
+        if (usuarioService.deletarUsuario(id)) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }

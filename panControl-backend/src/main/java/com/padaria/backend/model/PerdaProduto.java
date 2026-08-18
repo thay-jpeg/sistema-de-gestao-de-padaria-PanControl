@@ -28,6 +28,10 @@ public class PerdaProduto {
     @JoinColumn(name = "\"idUsuario_FK\"", nullable = false)
     private Usuario usuario;
 
+@ManyToOne
+    @JoinColumn(name = "\"idProducao_FK\"", nullable = false)
+    private Producao producao;
+
     @Column(name = "\"quantidadePerdida\"", nullable = false)
     private Integer quantidadePerdida;
 
@@ -47,6 +51,9 @@ public class PerdaProduto {
 
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+
+    public Producao getProducao() { return producao; }
+    public void setProducao(Producao producao) { this.producao = producao; }
 
     public Integer getQuantidadePerdida() { return quantidadePerdida; }
     public void setQuantidadePerdida(Integer quantidadePerdida) { this.quantidadePerdida = quantidadePerdida; }
