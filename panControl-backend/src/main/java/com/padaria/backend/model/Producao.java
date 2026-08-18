@@ -1,8 +1,9 @@
 package com.padaria.backend.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
+    
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,7 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "producao")
+@Table(name = "producoes")
 public class Producao {
 
     @Id
@@ -35,10 +36,10 @@ public class Producao {
     @Column(name = "\"quantidadeProduzida\"", nullable = false)
     private Integer quantidadeProduzida;
 
-    @Column(name = "lote", nullable = false)
-    private String lote;
+    @Column(name = "\"custoTotalProducao\"", nullable = false)
+    private BigDecimal custoTotalProducao;
 
-    @Column(name = "\"dataValidade\"", nullable = false)
+    @Column(name = "\"dataValidadeLote\"", nullable = false)
     private LocalDate dataValidade;
     
     public Producao() {}
@@ -59,8 +60,8 @@ public class Producao {
     public Integer getQuantidadeProduzida() { return quantidadeProduzida; }
     public void setQuantidadeProduzida(Integer quantidadeProduzida) { this.quantidadeProduzida = quantidadeProduzida; }
 
-    public String getLote() { return lote; }
-    public void setLote(String lote) { this.lote = lote; }
+    public BigDecimal getCustoTotalProducao() { return custoTotalProducao; }
+    public void setCustoTotalProducao(BigDecimal custoTotalProducao) { this.custoTotalProducao = custoTotalProducao; }
 
     public LocalDate getDataValidade() { return dataValidade; }
     public void setDataValidade(LocalDate dataValidade) { this.dataValidade = dataValidade; }

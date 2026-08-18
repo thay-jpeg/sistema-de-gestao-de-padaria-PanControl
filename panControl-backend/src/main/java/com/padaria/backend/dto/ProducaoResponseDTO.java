@@ -1,25 +1,26 @@
 package com.padaria.backend.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class ProducaoResponseDTO {
     private Integer idProducao;
     private Integer quantidadeProduzida;
-    private String lote;
     private LocalDate dataValidade;
     private LocalDateTime dataProducao;
     private Integer idProduto;
     private Integer idUsuario;
+    private BigDecimal custoTotalProducao;
 
     public Integer getIdProducao() { return idProducao; } 
     public void setIdProducao(Integer idProducao) { this.idProducao = idProducao; }
     
+    public BigDecimal getCustoTotalProducao() { return custoTotalProducao; }
+    public void setCustoTotalProducao(BigDecimal custoTotalProducao) { this.custoTotalProducao = custoTotalProducao; }
+
     public Integer getQuantidadeProduzida() { return quantidadeProduzida; } 
     public void setQuantidadeProduzida(Integer quantidadeProduzida) { this.quantidadeProduzida = quantidadeProduzida; }
-    
-    public String getLote() { return lote; } 
-    public void setLote(String lote) { this.lote = lote; }
     
     public LocalDate getDataValidade() { return dataValidade; } 
     public void setDataValidade(LocalDate dataValidade) { this.dataValidade = dataValidade; }
