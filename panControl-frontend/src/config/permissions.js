@@ -1,15 +1,22 @@
 export const ROLES = {
-  GESTOR:    'Gestor',
-  ATENDENTE: 'Atendente',
-  PRODUTOR:  'Produtor',
+  GESTOR: 'GESTOR',
+  ATENDENTE: 'ATENDENTE',
+  PRODUTOR: 'PRODUTOR'
 }
 
-export const PERMISSIONS = {
-  [ROLES.GESTOR]:    ['vendas', 'catalogo', 'producao', 'relatorios', 'gerenciamento', 'pedidosVenda'],
-  [ROLES.ATENDENTE]: ['vendas', 'catalogo'],
-  [ROLES.PRODUTOR]:  ['producao', 'catalogo'],
-}
+export function canAccess(perfil, moduleKey) {
+  if (!perfil) return false;
 
-export function canAccess(role, module) {
-  return (PERMISSIONS[role] || []).includes(module)
+  const p = perfil.toUpperCase();
+
+  if (p === 'GESTOR') return true;
+
+  if (p === 'ATENDENTE') {
+    return ['vendas', 'catalogo'].includes(moduleKey);
+  }
+  if (p === 'PRODUTOR') {
+    return ['catalogo', 'producao'].includes(moduleKey);
+  }
+
+  return false;
 }

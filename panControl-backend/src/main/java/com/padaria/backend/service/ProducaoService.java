@@ -1,5 +1,6 @@
 package com.padaria.backend.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -9,9 +10,13 @@ import org.springframework.stereotype.Service;
 
 import com.padaria.backend.dto.ProducaoRequestDTO;
 import com.padaria.backend.dto.ProducaoResponseDTO;
+import com.padaria.backend.model.FichaTecnica;
+import com.padaria.backend.model.Ingrediente;
 import com.padaria.backend.model.Producao;
 import com.padaria.backend.model.Produto;
 import com.padaria.backend.model.Usuario;
+import com.padaria.backend.repository.FichaTecnicaRepository;
+import com.padaria.backend.repository.IngredienteRepository;
 import com.padaria.backend.repository.ProducaoRepository;
 import com.padaria.backend.repository.ProdutoRepository;
 import com.padaria.backend.repository.UsuarioRepository;
@@ -24,6 +29,8 @@ public class ProducaoService {
     @Autowired private ProducaoRepository producaoRepo;
     @Autowired private ProdutoRepository produtoRepo;
     @Autowired private UsuarioRepository usuarioRepo;
+    @Autowired private FichaTecnicaRepository fichaRepo;
+    @Autowired private IngredienteRepository ingredienteRepo;
 
     @Transactional
     public ProducaoResponseDTO registrarProducao(ProducaoRequestDTO dto) {
@@ -38,6 +45,25 @@ public class ProducaoService {
         Integer estoqueAtual = produto.getQuantidadeEstoque() != null ? produto.getQuantidadeEstoque() : 0;
         produto.setQuantidadeEstoque(estoqueAtual + dto.getQuantidadeProduzida());
         produtoRepo.save(produto);
+
+        Integer estoqueAtualProd = produto.getQuantidadeEstoque() != null ? produto.getQuantidadeEstoque() : 0;
+        produto.setQuantidadeEstoque(estoqueAtualProd + dto.getQuantidadeProduzida());
+        produtoRepo.save(produto);
+
+        List<FichaTecnica> fichas = fichaRepo.findByProdutoIdProduto(produto.getIdProduto());
+        
+        for (FichaTecnica ficha : fichas) {
+            Ingrediente ingrediente = ficha.getIngrediente();
+            
+            BigDecimal qtdGasta = ficha.getQuantidadeNecessaria().multiply(BigDecimal.valueOf(dto.getQuantidadeProduzida()));
+            
+            BigDecimal estoqueAtualIng = ingrediente.getQuantidadeEstoque() != null ? ingrediente.getQuantidadeEstoque() : BigDecimal.ZERO;
+            
+            BigDecimal novoEstoqueIng = estoqueAtualIng.subtract(qtdGasta).max(BigDecimal.ZERO);
+            ingrediente.setQuantidadeEstoque(novoEstoqueIng);
+            
+            ingredienteRepo.save(ingrediente);
+            }
 
         Producao salva = producaoRepo.save(producao);
         return mapearEntidadeParaDto(salva);
