@@ -27,6 +27,7 @@ model Produto {
   idProduto_PK           Int      @id @default(autoincrement())
   nomeProduto            String
   codigoBarras           String?  @unique
+  imagem                 String?  @db.Text
   diasValidadePadrao     Int
   percentualICMS         Decimal  @db.Decimal(5, 2)
   percentualLucroBalcao  Decimal  @db.Decimal(5, 2)

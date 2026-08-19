@@ -67,6 +67,7 @@ public class ProdutoService {
     private void mapearDtoParaEntidade(ProdutoRequestDTO dto, Produto entidade) {
         entidade.setNomeProduto(dto.getNomeProduto());
         entidade.setCodigoBarras(dto.getCodigoBarras());
+        entidade.setImagem(dto.getImagem());
         entidade.setDiasValidadePadrao(dto.getDiasValidadePadrao());
         entidade.setPercentualICMS(dto.getPercentualICMS());
         entidade.setPercentualLucroBalcao(dto.getPercentualLucroBalcao());
@@ -82,6 +83,7 @@ public class ProdutoService {
         ProdutoResponseDTO dto = new ProdutoResponseDTO();
         dto.setIdProduto(entidade.getIdProduto()); 
         dto.setNomeProduto(entidade.getNomeProduto());
+        dto.setImagem(entidade.getImagem());
         dto.setCodigoBarras(entidade.getCodigoBarras());
         dto.setDiasValidadePadrao(entidade.getDiasValidadePadrao());
         dto.setPercentualICMS(entidade.getPercentualICMS());

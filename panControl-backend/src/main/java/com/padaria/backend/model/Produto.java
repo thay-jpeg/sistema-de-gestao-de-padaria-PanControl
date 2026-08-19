@@ -27,6 +27,9 @@ public class Produto {
     @Column(name = "\"diasValidadePadrao\"", nullable = false)
     private Integer diasValidadePadrao;
 
+    @Column(name = "imagem", columnDefinition = "TEXT")
+    private String imagem;
+
     @Column(name = "\"percentualICMS\"", nullable = false, precision = 5, scale = 2)
     private BigDecimal percentualICMS;
 
@@ -53,6 +56,9 @@ public class Produto {
 
     public String getNomeProduto() { return nomeProduto; }
     public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }
+
+    public String getImagem() { return imagem; }
+    public void setImagem(String imagem) { this.imagem = imagem; }
 
     public String getCodigoBarras() { return codigoBarras; }
     public void setCodigoBarras(String codigoBarras) { this.codigoBarras = codigoBarras; }
