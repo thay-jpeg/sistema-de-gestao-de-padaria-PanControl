@@ -47,6 +47,7 @@ model Produto {
 model Ingrediente {
   idIngrediente_PK   Int      @id @default(autoincrement())
   nomeIngrediente    String
+  imagem             String?  @db.Text
   unidadeMedida      String
   quantidadeEstoque  Decimal  @db.Decimal(10, 3)
   estoqueMinimo      Decimal  @db.Decimal(10, 3)
