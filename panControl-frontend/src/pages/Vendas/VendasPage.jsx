@@ -85,10 +85,55 @@ export default function VendasPage() {
     setPayOpen(true)
   }
 
-  function confirmPayment() {
-    if (payStep===1) { setPayStep(2); return }
-    alert('Venda finalizada! (mock)')
-    setCart([]); setClient(''); setPayOpen(false)
+  async function confirmPayment() {
+    if (payStep === 1) { 
+      setPayStep(2); 
+      return; 
+    }
+
+    // Pega o primeiro método de pagamento usado na tela
+    const metodoPrincipal = Object.keys(payMethods)[0] || 'PIX';
+    
+    // Tenta encontrar o ID do cliente caso o usuário tenha digitado o nome ou código
+    const cli = clients.find(c => c.code === client || c.name.toLowerCase() === client.toLowerCase());
+
+    // Monta o JSON (Payload)
+    const payload = {
+      metodoPagamento: metodoPrincipal.toUpperCase(),
+      idUsuario: user?.id || 1, // Usa o ID do vendedor logado
+      idClienteAtacadista: cli ? cli.id : null, 
+      itens: cart.map(item => ({
+        idProduto: item.id,
+        quantidade: item.qty
+      }))
+    };
+
+    try {
+      // Dispara para a porta padrão do Spring Boot
+      const response = await fetch('http://localhost:8080/api/vendas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert('Venda registrada com sucesso no banco de dados!');
+        
+        // Limpa a tela para a próxima venda
+        setCart([]); 
+        setClient(''); 
+        setPayOpen(false);
+        setPayMethods({});
+        setPayInput('');
+        setSelMethod(null);
+        setPayStep(1);
+      } else {
+        alert('Erro ao processar a venda. Verifique o console do back-end.');
+      }
+    } catch (error) {
+      console.error("Erro na API:", error);
+      alert('Falha de comunicação. O servidor Java está ligado?');
+    }
   }
 
   function addPayMethod(key) {
