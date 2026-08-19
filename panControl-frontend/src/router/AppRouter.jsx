@@ -14,7 +14,7 @@ import PedidosVendaPage   from '@/pages/PedidosVenda/PedidosVendaPage'
 function PrivateRoute({ module, children }) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/" replace />
-  if (module && !canAccess(user.role, module)) return <Navigate to="/home" replace />
+  if (module && !canAccess(user?.perfil, module)) return <Navigate to="/home" replace />
   return children
 }
 

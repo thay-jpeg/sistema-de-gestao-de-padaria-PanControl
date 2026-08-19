@@ -79,6 +79,7 @@ public class UsuarioService {
         dto.setCodigoAcesso(entidade.getCodigoAcesso());
         dto.setPerfil(entidade.getPerfil());
         dto.setStatusAtivo(entidade.getStatusAtivo());
+        dto.setSenhaHash(entidade.getSenhaHash());
         return dto;
     }
 }
