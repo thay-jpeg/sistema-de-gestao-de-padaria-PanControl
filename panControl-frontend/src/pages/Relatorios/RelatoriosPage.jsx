@@ -60,7 +60,7 @@ export default function RelatoriosPage() {
     try {
       switch (type) {
         case 'vendas': {
-          const res = await fetch(`http://localhost:8080/api/relatorios/vendas${queryString}`)
+          const res = await fetch(`http://localhost:8080/api/vendas${queryString}`)
           if (res.ok) {
             const data = await res.json()
             setRows(data.map(v => ({
@@ -74,7 +74,7 @@ export default function RelatoriosPage() {
           break
         }
         case 'pedidos': {
-          const res = await fetch(`http://localhost:8080/api/relatorios/pedidos${queryString}`)
+          const res = await fetch(`http://localhost:8080/api/pedidos${queryString}`)
           if (res.ok) {
             const data = await res.json()
             setRows(data.map(p => ({
@@ -105,16 +105,17 @@ export default function RelatoriosPage() {
           break
         }
         case 'ingredientes': {
-          const res = await fetch(`http://localhost:8080/api/relatorios/ingredientes${queryString}`)
+          const res = await fetch(`http://localhost:8080/api/ingredientes${queryString}`)
           if (res.ok) {
             const data = await res.json()
             setRows(data.map((ing) => ({
               id: ing.idIngrediente,
               code: String(ing.idIngrediente).padStart(3, '0'),
-              name: ing.nome, // Mapeado do getNome() da Projection
-              medida: ing.medida, // Mapeado do getMedida() da Projection
-              custoStr: `R$ ${Number(ing.custo || 0).toFixed(4).replace('.', ',')}`, // getCusto()
-              qtdeStr: String(ing.estoque) // getEstoque()
+              // Trocamos para os nomes corretos que a sua API padrão devolve:
+              name: ing.nomeIngrediente, 
+              medida: ing.unidadeMedida, 
+              custoStr: `R$ ${Number(ing.custoMedioUnitario || 0).toFixed(4).replace('.', ',')}`, 
+              qtdeStr: String(ing.quantidadeEstoque) 
             })))
           }
           break

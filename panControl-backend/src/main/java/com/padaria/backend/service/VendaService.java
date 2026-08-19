@@ -44,7 +44,6 @@ public class VendaService {
         novaVenda.setClienteAtacadista(cliente);
         novaVenda.setDataVenda(LocalDateTime.now());
         novaVenda.setValorTotal(0.0);
-        // Os campos NFe (CPF/Email) viriam no request e seriam salvos aqui dependendo da sua modelagem
 
         Venda vendaSalva = vendaRepository.save(novaVenda);
         double valorTotalFinal = 0.0;
@@ -104,7 +103,6 @@ public class VendaService {
             Double precoAplicado = produto.getPrecoAtacado().doubleValue();
             valorTotalFinal += precoAplicado * itemDto.getQuantidade();
 
-            // Colega solicitou que a criação do pedido já abata o estoque
             produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - itemDto.getQuantidade());
             produtoRepository.save(produto);
 
@@ -131,7 +129,6 @@ public class VendaService {
 
         pedido.setSituacao("cancelado");
 
-        // Realiza um rollback no estoque antes da inserção (devolvendo as quantidades)
         List<ItemPedido> itens = itemPedidoRepository.findByPedidoVenda(pedido);
         for (ItemPedido item : itens) {
             Produto produto = item.getProduto();
@@ -140,5 +137,15 @@ public class VendaService {
         }
 
         return pedidoVendaRepository.save(pedido);
+    }
+
+    // --- MÉTODOS DE RELATÓRIO ADICIONADOS AQUI ---
+
+    public List<Venda> listarTodasAsVendas() {
+        return vendaRepository.findAll();
+    }
+
+    public List<PedidoVenda> listarTodosOsPedidos() {
+        return pedidoVendaRepository.findAll();
     }
 }
