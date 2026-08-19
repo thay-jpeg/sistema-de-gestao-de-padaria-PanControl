@@ -34,6 +34,11 @@ public class ProducaoService {
             producao.setDataProducao(LocalDateTime.now());
         }
         
+        Produto produto = producao.getProduto();
+        Integer estoqueAtual = produto.getQuantidadeEstoque() != null ? produto.getQuantidadeEstoque() : 0;
+        produto.setQuantidadeEstoque(estoqueAtual + dto.getQuantidadeProduzida());
+        produtoRepo.save(produto);
+
         Producao salva = producaoRepo.save(producao);
         return mapearEntidadeParaDto(salva);
     }
@@ -61,7 +66,7 @@ public class ProducaoService {
 
 private void mapearDtoParaEntidade(ProducaoRequestDTO dto, Producao entidade) {
         entidade.setQuantidadeProduzida(dto.getQuantidadeProduzida());
-        entidade.setLote(dto.getLote());
+        entidade.setCustoTotalProducao(dto.getCustoTotalProducao());
         entidade.setDataValidade(dto.getDataValidade());
         entidade.setDataProducao(dto.getDataProducao());
         
@@ -76,7 +81,7 @@ private void mapearDtoParaEntidade(ProducaoRequestDTO dto, Producao entidade) {
         ProducaoResponseDTO dto = new ProducaoResponseDTO();
         dto.setIdProducao(entidade.getIdProducao()); 
         dto.setQuantidadeProduzida(entidade.getQuantidadeProduzida());
-        dto.setLote(entidade.getLote());
+        dto.setCustoTotalProducao(entidade.getCustoTotalProducao());
         dto.setDataValidade(entidade.getDataValidade());
         dto.setDataProducao(entidade.getDataProducao());
         dto.setIdProduto(entidade.getProduto().getIdProduto());

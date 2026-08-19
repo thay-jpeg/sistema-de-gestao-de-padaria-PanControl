@@ -37,9 +37,14 @@ public class PerdaProdutoService {
         perda.setDataPerda(dto.getDataPerda() != null ? dto.getDataPerda() : LocalDateTime.now());
         
         Producao producao = producaoRepo.findById(dto.getIdProducao()).orElseThrow(() -> new IllegalArgumentException("Produção não encontrada"));
-        Produto produto = produtoRepo.findById(dto.getIdProduto()).orElseThrow(() -> new IllegalArgumentException("Produto não encontrado"));
         Usuario usuario = usuarioRepo.findById(dto.getIdUsuario()).orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        Produto produto = produtoRepo.findById(dto.getIdProduto()).orElseThrow(() -> new IllegalArgumentException("Produto não encontrado"));
+        Integer estoqueAtual = produto.getQuantidadeEstoque() != null ? produto.getQuantidadeEstoque() : 0;
+        Integer novoEstoque = Math.max(0, estoqueAtual - dto.getQuantidadePerdida()); 
         
+        produto.setQuantidadeEstoque(novoEstoque);
+        produtoRepo.save(produto);
+
         perda.setProducao(producao); 
         perda.setProduto(produto);
         perda.setUsuario(usuario);

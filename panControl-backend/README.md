@@ -26,7 +26,7 @@ DATABASE_URL="postgresql://postgres:SUA_SENHA_AQUI@localhost:5432/pancontrol?sch
 
 3. Rodar o Migrations:
 
-Para criar o banco, executar linha abaixo: 
+Para criar o banco, executar linha abaixo:
 
 ```bash
 npx prisma migrate dev
