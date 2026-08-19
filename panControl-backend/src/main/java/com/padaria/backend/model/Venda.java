@@ -9,31 +9,28 @@ public class Venda {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idVenda_PK")
+    @Column(name = "\"idVenda_PK\"")
     private Long idVendaPK;
 
-    @Column(name = "valorTotal", nullable = false)
+    @Column(name = "\"valorTotal\"", nullable = false)
     private Double valorTotal;
 
-    @Column(name = "metodoPagamento", nullable = false)
+    @Column(name = "\"metodoPagamento\"", nullable = false)
     private String metodoPagamento;
 
-    @Column(name = "dataVenda", nullable = false)
+    @Column(name = "\"dataVenda\"", nullable = false)
     private LocalDateTime dataVenda;
 
-    // Relacionamento com Usuarios
     @ManyToOne
-    @JoinColumn(name = "idUsuario_FK", nullable = false)
+    @JoinColumn(name = "\"idUsuario_FK\"", nullable = false)
     private Usuario usuario;
 
-    // Relacionamento com Clientes Atacadistas (Pode ser nulo para vendas de balcão)
     @ManyToOne
-    @JoinColumn(name = "id_cliente_atacadista_fk")
+    @JoinColumn(name = "\"idClienteAtacadista_FK\"")
     private ClienteAtacadista clienteAtacadista;
 
-    // Relacionamento com Pedidos de Venda (Pode ser nulo se for venda direta)
     @ManyToOne
-    @JoinColumn(name = "idPedidoVenda_FK")
+    @JoinColumn(name = "\"idPedidoVenda_FK\"")
     private PedidoVenda pedidoVenda;
 
     @PrePersist
@@ -42,7 +39,6 @@ public class Venda {
     }
 
     // --- Getters e Setters ---
-
     public Long getIdVendaPK() { return idVendaPK; }
     public void setIdVendaPK(Long idVendaPK) { this.idVendaPK = idVendaPK; }
 

@@ -24,8 +24,10 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 300)) // simula latência de rede
-    const result = login(code.trim(), password)
+    
+    // Agora o React vai esperar o Java ir no banco de dados e voltar
+    const result = await login(code.trim(), password) 
+    
     setLoading(false)
     if (result.ok) navigate('/home')
     else setError(result.error)

@@ -24,8 +24,8 @@ public class Ingrediente {
     @Column(name = "\"unidadeMedida\"", nullable = false)
     private String unidadeMedida;
 
-    @Column(name = "imagem", columnDefinition = "TEXT")
-    private String imagem;
+    /*@Column(name = "imagem", columnDefinition = "TEXT")
+    private String imagem; */
 
     @Column(name = "\"quantidadeEstoque\"", nullable = false, precision = 10, scale = 3)
     private BigDecimal quantidadeEstoque;
@@ -45,8 +45,8 @@ public class Ingrediente {
     public String getNomeIngrediente() { return nomeIngrediente; }
     public void setNomeIngrediente(String nomeIngrediente) { this.nomeIngrediente = nomeIngrediente; }
 
-    public String getImagem() { return imagem; }
-    public void setImagem(String imagem) { this.imagem = imagem; }
+    /*public String getImagem() { return imagem; }
+    public void setImagem(String imagem) { this.imagem = imagem; } */
 
     public String getUnidadeMedida() { return unidadeMedida; }
     public void setUnidadeMedida(String unidadeMedida) { this.unidadeMedida = unidadeMedida; }

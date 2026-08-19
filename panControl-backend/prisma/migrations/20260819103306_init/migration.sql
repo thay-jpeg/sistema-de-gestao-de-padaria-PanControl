@@ -15,6 +15,7 @@ CREATE TABLE "produtos" (
     "idProduto_PK" SERIAL NOT NULL,
     "nomeProduto" TEXT NOT NULL,
     "codigoBarras" TEXT,
+    "imagem" TEXT,
     "diasValidadePadrao" INTEGER NOT NULL,
     "percentualICMS" DECIMAL(5,2) NOT NULL,
     "percentualLucroBalcao" DECIMAL(5,2) NOT NULL,

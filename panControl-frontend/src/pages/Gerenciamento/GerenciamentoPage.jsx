@@ -17,7 +17,7 @@ const ING_SUB_TABS = [
 ]
 
 const EMPTY_CLIENT = { code: '', name: '', cpf: '', birth: '', country: 'Brasil', email: '', phone: '+55', cep: '', address: '', neighborhood: '', city: '', complement: '', tipoPessoa: 'PF', ativo: true, uf: '', numero: '' }
-const EMPTY_ING = { name: '', unidadeMedida: '', quantidadeEstoque: '', estoqueMinimo: '', custoMedioUnitario: '', image: null }
+const EMPTY_ING = { name: '', unidadeMedida: '', quantidadeEstoque: '', estoqueMinimo: '', custoMedioUnitario: '',}
 const EMPTY_COMPRA = { ingredienteId: '', quantidadeComprada: '', dataValidade: '', custoTotal: '', dataCompra: '' }
 const EMPTY_USER = { nomeUsuario: '', codigoAcesso: '', senhaHash: '', perfil: 'ATENDENTE', statusAtivo: true };
 
@@ -170,7 +170,7 @@ export default function GerenciamentoPage() {
   function openNewIng() { setSelI(null); setIF({ ...EMPTY_ING }); setModal({ open: true, mode: 'ingredient', isNew: true }) }
   function openEditIng(i) {
     setSelI(i);
-    setIF({ ...i, imagem: i.imagem, validity: brToISO(i.validity) });
+    setIF({ ...i, validity: brToISO(i.validity) });
     setModal({ open: true, mode: 'ingredient', isNew: false });
   } function openNewCompra() { setSelCo(null); setCompF({ ...EMPTY_COMPRA, dataCompra: brToISO(todayBR()) }); setModal({ open: true, mode: 'compra', isNew: true }) }
   function openNewUser() {
@@ -268,6 +268,7 @@ export default function GerenciamentoPage() {
   }
 
   // carrega pra base64
+  /*
   function handlePhotoUpload(e) {
     const file = e.target.files[0];
     if (file) {
@@ -277,7 +278,7 @@ export default function GerenciamentoPage() {
       };
       reader.readAsDataURL(file);
     }
-  }
+  }*/
 
   async function saveIng() {
     // payload no formato do DTO
@@ -287,7 +288,7 @@ export default function GerenciamentoPage() {
       quantidadeEstoque: parseFloat(ingForm.quantidadeEstoque) || 0,
       estoqueMinimo: parseFloat(ingForm.estoqueMinimo) || 0,
       custoMedioUnitario: parseFloat(ingForm.custoMedioUnitario) || 0,
-      imagem: ingForm.imagem
+      //imagem: ingForm.imagem
     };
 
     try {
@@ -802,24 +803,7 @@ export default function GerenciamentoPage() {
       <Modal isOpen={modal.open && modal.mode === 'ingredient'} onClose={closeModal} className="w-[600px]">
         <div className="p-6">
           <h2 className="font-bold text-lg mb-4">{modal.isNew ? 'Novo Ingrediente' : 'Editar Ingrediente'}</h2>
-          <div className="flex gap-5 mb-4">
-            <label
-              htmlFor="upload-foto"
-              className="relative w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-gold transition overflow-hidden"
-            >
-              {ingForm.imagem ? (
-                <img src={ingForm.imagem} alt="Prévia" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-gray-400 text-xs text-center font-semibold">+ Adicionar<br />Foto</span>
-              )}
-              <input
-                type="file"
-                id="upload-foto"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-            </label>
+          <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="flex-1 grid grid-cols-2 gap-3">
               {!modal.isNew && (
                 <div className="col-span-2 flex flex-col gap-1">

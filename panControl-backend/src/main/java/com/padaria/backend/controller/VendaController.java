@@ -1,6 +1,6 @@
 package com.padaria.backend.controller;
 
-import com.padaria.backend.dto.VendaResponseDTO;
+import com.padaria.backend.dto.VendaRequestDTO;
 import com.padaria.backend.model.Venda;
 import com.padaria.backend.service.VendaService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ public class VendaController {
     private VendaService vendaService;
 
     @PostMapping
-    public ResponseEntity<Venda> receberVenda(@RequestBody VendaResponseDTO request) {
+    public ResponseEntity<Venda> receberVenda(@RequestBody VendaRequestDTO request) {
         Venda vendaSalva = vendaService.registrarVenda(request);
         return ResponseEntity.ok(vendaSalva);
     }

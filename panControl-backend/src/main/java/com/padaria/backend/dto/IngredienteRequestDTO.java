@@ -11,7 +11,7 @@ public class IngredienteRequestDTO {
     private BigDecimal custoMedioUnitario;
 
     public String getNomeIngrediente() { return nomeIngrediente; } public void setNomeIngrediente(String nomeIngrediente) { this.nomeIngrediente = nomeIngrediente; }
-    public String getImagem() { return imagem; } public void setImagem(String imagem) { this.imagem = imagem; }
+    //public String getImagem() { return imagem; } public void setImagem(String imagem) { this.imagem = imagem; }
     public String getUnidadeMedida() { return unidadeMedida; } public void setUnidadeMedida(String unidadeMedida) { this.unidadeMedida = unidadeMedida; }
     public BigDecimal getQuantidadeEstoque() { return quantidadeEstoque; } public void setQuantidadeEstoque(BigDecimal quantidadeEstoque) { this.quantidadeEstoque = quantidadeEstoque; }
     public BigDecimal getEstoqueMinimo() { return estoqueMinimo; } public void setEstoqueMinimo(BigDecimal estoqueMinimo) { this.estoqueMinimo = estoqueMinimo; }

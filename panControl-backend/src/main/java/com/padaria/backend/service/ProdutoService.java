@@ -23,11 +23,11 @@ public class ProdutoService {
     public ProdutoResponseDTO criarProduto(ProdutoRequestDTO dto) {
         Produto produto = new Produto();
         mapearDtoParaEntidade(dto, produto);
-        
+
         if (produto.getQuantidadeEstoque() == null) {
             produto.setQuantidadeEstoque(0);
         }
-        
+
         Produto salvo = produtoRepository.save(produto);
         return mapearEntidadeParaDto(salvo);
     }
@@ -44,13 +44,21 @@ public class ProdutoService {
                 .orElse(null);
     }
 
+    // NOVO MÉTODO: Busca produtos pelo nome ou código de barras para o PDV
+    public List<ProdutoResponseDTO> buscarProdutosPorNomeOuCodigo(String query) {
+        return produtoRepository.findByNomeProdutoContainingIgnoreCaseOrCodigoBarrasContainingIgnoreCase(query, query)
+                .stream()
+                .map(this::mapearEntidadeParaDto)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public ProdutoResponseDTO atualizarProduto(Integer id, ProdutoRequestDTO dto) {
         Produto produtoExistente = produtoRepository.findById(id).orElse(null);
         if (produtoExistente == null) return null;
 
         mapearDtoParaEntidade(dto, produtoExistente);
-        
+
         Produto atualizado = produtoRepository.save(produtoExistente);
         return mapearEntidadeParaDto(atualizado);
     }
@@ -81,7 +89,7 @@ public class ProdutoService {
 
     private ProdutoResponseDTO mapearEntidadeParaDto(Produto entidade) {
         ProdutoResponseDTO dto = new ProdutoResponseDTO();
-        dto.setIdProduto(entidade.getIdProduto()); 
+        dto.setIdProduto(entidade.getIdProduto());
         dto.setNomeProduto(entidade.getNomeProduto());
         dto.setImagem(entidade.getImagem());
         dto.setCodigoBarras(entidade.getCodigoBarras());
