@@ -1,21 +1,21 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect }   from 'react'
-import { useAuth }     from '@/context/AuthContext'
-import { canAccess }   from '@/config/permissions'
-import Header          from '@/components/layout/Header'
-import logoFull        from '@/assets/images/logo-full.png'
+import { useEffect } from 'react'
+import { useAuth } from '@/context/AuthContext'
+import { canAccess } from '@/config/permissions'
+import Header from '@/components/layout/Header'
+import logoFull from '@/assets/images/logo-full.png'
 
 const MODULES = [
-  { key: 'vendas',         num: 1, label: 'Vendas',         route: '/vendas',        color: 'bg-green   hover:bg-green-dark', textColor: 'text-white' },
-  { key: 'catalogo',       num: 2, label: 'Catálogo',       route: '/catalogo',      color: 'bg-red     hover:bg-red-dark',   textColor: 'text-white' },
-  { key: 'producao',       num: 3, label: 'Produção',       route: '/producao',      color: 'bg-brown   hover:bg-brown/80',   textColor: 'text-white' },
-  { key: 'relatorios',     num: 4, label: 'Relatórios',     route: '/relatorios',    color: 'bg-brown-light hover:bg-cream',  textColor: 'text-gray-800' },
-  { key: 'gerenciamento',  num: 5, label: 'Gerenciamento',  route: '/gerenciamento', color: 'bg-gold    hover:bg-gold/80',    textColor: 'text-gray-900' },
+  { key: 'vendas', num: 1, label: 'Vendas', route: '/vendas', color: 'bg-green   hover:bg-green-dark', textColor: 'text-white' },
+  { key: 'catalogo', num: 2, label: 'Catálogo', route: '/catalogo', color: 'bg-red     hover:bg-red-dark', textColor: 'text-white' },
+  { key: 'producao', num: 3, label: 'Produção', route: '/producao', color: 'bg-brown   hover:bg-brown/80', textColor: 'text-white' },
+  { key: 'relatorios', num: 4, label: 'Relatórios', route: '/relatorios', color: 'bg-brown-light hover:bg-cream', textColor: 'text-gray-800' },
+  { key: 'gerenciamento', num: 5, label: 'Gerenciamento', route: '/gerenciamento', color: 'bg-gold    hover:bg-gold/80', textColor: 'text-gray-900' },
 ]
 
 export default function HomePage() {
   const { user } = useAuth()
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
 
   // Atalhos de teclado 1–5
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function HomePage() {
       const num = parseInt(e.key)
       if (isNaN(num)) return
       const mod = MODULES.find(m => m.num === num)
-      if (mod && canAccess(user.role, mod.key)) navigate(mod.route)
+      if (mod && canAccess(user?.perfil, mod.key)) navigate(mod.route)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -47,7 +47,7 @@ export default function HomePage() {
           {/* Linha 1 */}
           <div className="flex gap-5">
             {MODULES.slice(0, 3).map(mod => {
-              const allowed = canAccess(user.role, mod.key)
+              const allowed = canAccess(user?.perfil, mod.key)
               return (
                 <ModuleCard
                   key={mod.key}
@@ -61,7 +61,7 @@ export default function HomePage() {
           {/* Linha 2 */}
           <div className="flex gap-5">
             {MODULES.slice(3, 5).map(mod => {
-              const allowed = canAccess(user.role, mod.key)
+              const allowed = canAccess(user?.perfil, mod.key)
               return (
                 <ModuleCard
                   key={mod.key}

@@ -2,18 +2,19 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import logoFull from '@/assets/images/logo-full.png'
+import api from '@/services/api'
 
 export default function LoginPage() {
-  const [code,     setCode]     = useState('')
+  const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const { login, user } = useAuth()
-  const navigate         = useNavigate()
-  const codeRef          = useRef()
+  const navigate = useNavigate()
+  const codeRef = useRef()
 
-  // Se já estiver logado, redireciona
+  // se já estiver logado, redireciona
   useEffect(() => { if (user) navigate('/home') }, [user, navigate])
   useEffect(() => { codeRef.current?.focus() }, [])
 
@@ -24,15 +25,28 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    
-    // Agora o React vai esperar o Java ir no banco de dados e voltar
-    const result = await login(code.trim(), password) 
-    
-    setLoading(false)
-    if (result.ok) navigate('/home')
-    else setError(result.error)
-  }
+    try {
+      // busca os usuários
+      const res = await api.get('/usuarios');
 
+      // cruza c/ o banco
+      const usuarioLogado = res.data.find(u =>
+        String(u.codigoAcesso) === code.trim() &&
+        String(u.senhaHash) === password.trim()
+      );
+
+      if (usuarioLogado) {
+        login(usuarioLogado);
+        navigate('/home');
+      } else {
+        setError('Código de acesso ou senha inválidos.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao conectar com o servidor.');
+    }
+    setLoading(false)
+  }
   function handleKeyDown(e) {
     if (e.key === 'Enter') handleLogin()
   }
@@ -101,12 +115,12 @@ export default function LoginPage() {
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
 
-            {/* Credenciais demo */}
-            <div className="text-xs text-gray-400 border border-gray-100 rounded p-3 space-y-0.5">
-              <p className="font-semibold text-gray-500 mb-1">Acesso demonstração:</p>
-              <p>👤 Gestor: <b>0001</b> / senha: <b>1234</b></p>
-              <p>👤 Atendente: <b>0002</b> / senha: <b>1234</b></p>
-              <p>👤 Produtor: <b>0003</b> / senha: <b>1234</b></p>
+            <div className="text-xs text-gray-400 border border-gray-100 rounded p-3 space-y-0.5" style={{ textAlign: 'justify' }}>
+              <p className="font-semibold text-gray-500 mb-1">Algum problema?</p>
+              <p>
+                👤 Se você esqueceu seu código de acesso ou senha, entre em contato com um administrador para redefinir suas credenciais.
+              </p>
+
             </div>
           </div>
 

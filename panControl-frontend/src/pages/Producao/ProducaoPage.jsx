@@ -346,7 +346,7 @@ export default function ProducaoPage() {
                   <th className="px-4 py-2">Cód. Entrada</th>
                   <th className="px-4 py-2">Data Compra</th>
                   <th className="px-4 py-2">Validade</th>
-                  <th className="px-4 py-2 text-right">Qtde Restante</th>
+                  <th className="px-4 py-2 text-right">Qtde</th>
                 </tr>
               </thead>
               <tbody>

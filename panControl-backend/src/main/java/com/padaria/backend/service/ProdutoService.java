@@ -72,6 +72,12 @@ public class ProdutoService {
         return false;
     }
 
+    public ProdutoResponseDTO buscarPorNome(String nomeProduto) {
+    Produto produto = produtoRepository.findByNomeProdutoContainingIgnoreCase(nomeProduto)
+        .orElseThrow(() -> new IllegalArgumentException("Produto não encontrado"));
+    return mapearEntidadeParaDto(produto);
+    }
+
     private void mapearDtoParaEntidade(ProdutoRequestDTO dto, Produto entidade) {
         entidade.setNomeProduto(dto.getNomeProduto());
         entidade.setCodigoBarras(dto.getCodigoBarras());

@@ -19,6 +19,16 @@ const EMPTY = {
 export default function CatalogoPage() {
   const { user } = useAuth()
 
+  const userRole = user?.perfil || '';
+  const isGestor = userRole === 'GESTOR';
+  const isProdutor = userRole === 'PRODUTOR';
+  const isAtendente = userRole === 'ATENDENTE';
+
+  const podeEditarBasico = isGestor || isProdutor;
+  const podeEditarFinanceiro = isGestor;
+
+  const [hasHistory, setHasHistory] = useState(false);
+
   // Estados para as listas do banco de dados
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
@@ -30,7 +40,6 @@ export default function CatalogoPage() {
   const [isNew, setIsNew] = useState(false)
   const [ingFilter, setIngFilter] = useState('')
   const searchRef = useRef()
-  const canEdit = canAccess(user.role, 'gerenciamento')
 
   // Busca os dados da API
   useEffect(() => {
@@ -98,23 +107,23 @@ export default function CatalogoPage() {
     setIsNew(false); setIngFilter('');
 
     try {
-      const res = await api.get(`/fichastecnicas/produto/${product.idProduto}`);
-      const fichasFormatadas = res.data.map(f => ({
+      const resFicha = await api.get(`/fichastecnicas/produto/${product.idProduto}`);
+      const fichasFormatadas = resFicha.data.map(f => ({
         idFichaTecnica: f.idFichaTecnica,
         ingredienteId: f.idIngrediente,
         quantidade: f.quantidadeNecessaria
       }));
-      const texto = res.data.length > 0 ? res.data[0].textoReceita : '';
-
+      const texto = resFicha.data.length > 0 ? resFicha.data[0].textoReceita : '';
       setForm({ ...product, fichasTecnica: fichasFormatadas, textoReceita: texto });
+
+      const resProd = await api.get(`/producao/produto/${product.idProduto}`);
+      setHasHistory(resProd.data && resProd.data.length > 0);
+
     } catch (e) {
       setForm({ ...product, fichasTecnica: [], textoReceita: '' });
+      setHasHistory(false);
     }
     setModal(true)
-  }
-
-  function openNew() {
-    setSelected(null); setForm({ ...EMPTY }); setIsNew(true); setIngFilter(''); setModal(true)
   }
 
   // ── FichaTécnica helpers ──────────────────────────────────────────────────
@@ -190,19 +199,33 @@ export default function CatalogoPage() {
   async function handleDelete() {
     if (!confirm('Excluir produto definitivamente?')) return
     try {
+      const fichasAntigas = await api.get(`/fichastecnicas/produto/${selected.idProduto}`).catch(() => ({ data: [] }));
+      for (let f of (fichasAntigas.data || [])) {
+        await api.delete(`/fichastecnicas/${f.idFichaTecnica}`);
+      }
+
       await api.delete(`/produtos/${selected.idProduto}`);
       setProducts(products.filter(p => p.idProduto !== selected.idProduto));
       setModal(false);
+      alert("Produto excluído com sucesso!");
     } catch (error) {
-      alert("Erro ao excluir. Verifique se o produto está vinculado a produções.");
+      console.error(error);
+      alert("Erro ao excluir. O produto possui histórico de Produção e não pode ser apagado.");
     }
+  }
+  function openNew() {
+    setSelected(null);
+    setForm({ ...EMPTY });
+    setIsNew(true);
+    setIngFilter('');
+    setModal(true);
   }
 
   useKeyboardShortcut([
     { key: 'F9', fn: () => modalOpen ? saveProduct() : null },
     { key: 'F10', fn: () => modalOpen && !isNew ? handleDelete() : null },
-    { key: 'c', fn: () => !modalOpen && canEdit && openNew() },
-    { key: 'C', fn: () => !modalOpen && canEdit && openNew() },
+    { key: 'c', fn: () => !modalOpen && podeEditarBasico && openNew() },
+    { key: 'C', fn: () => !modalOpen && podeEditarBasico && openNew() },
     { key: 'p', fn: () => !modalOpen && searchRef.current?.focus() },
     { key: 'P', fn: () => !modalOpen && searchRef.current?.focus() },
   ])
@@ -218,7 +241,7 @@ export default function CatalogoPage() {
             placeholder="Buscar produto..."
             className="flex-1 bg-input-bg border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold" />
           <Button variant="gold">(P)rocurar</Button>
-          {canEdit && <Button variant="green" onClick={openNew}>(C)adastrar +</Button>}
+          {podeEditarBasico && <Button variant="green" onClick={openNew}>(C)adastrar +</Button>}
         </div>
 
         <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-5 overflow-y-auto pan-scroll">
@@ -237,10 +260,12 @@ export default function CatalogoPage() {
 
           {/* Título */}
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-lg text-gray-800">{isNew ? 'Novo Produto' : 'Editar Produto'}</h2>
+            <h2 className="font-bold text-lg text-gray-800">
+              {isNew ? 'Novo Produto' : isAtendente ? 'Visualizar Produto' : 'Editar Produto'}
+            </h2>
             <div className="flex gap-2">
-              <Button variant="green" shortcut="F9" onClick={saveProduct}>{isNew ? 'Cadastrar' : 'Salvar'}</Button>
-              {!isNew && <Button variant="red" shortcut="F10" onClick={handleDelete}>Excluir</Button>}
+              {podeEditarBasico && <Button variant="green" shortcut="F9" onClick={saveProduct}>{isNew ? 'Cadastrar' : 'Salvar'}</Button>}
+              {!isNew && isGestor && !hasHistory && <Button variant="red" shortcut="F10" onClick={handleDelete}>Excluir</Button>}
             </div>
           </div>
 
@@ -248,7 +273,7 @@ export default function CatalogoPage() {
           <div className="flex gap-5">
             <label className="w-36 h-36 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg
                             flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer hover:border-gold transition relative">
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+              <input type="file" accept="image/*" className="hidden" disabled={!podeEditarBasico} onChange={(e) => {
                 const file = e.target.files[0];
                 if (file) {
                   const reader = new FileReader();
@@ -262,17 +287,22 @@ export default function CatalogoPage() {
             </label>
 
             <div className="flex-1 grid grid-cols-4 gap-3">
-              <FF label="Código" value={form.idProduto} disabled className="col-span-1" />
-              <FF label="Descrição" value={form.nomeProduto} onChange={v => setForm(f => ({ ...f, nomeProduto: v }))} className="col-span-2" />
-              <FF label="Cód. de Barras" value={form.codigoBarras} onChange={v => setForm(f => ({ ...f, codigoBarras: v }))} className="col-span-1" />
-              <FF label="ICMS (%)" value={form.percentualICMS} onChange={v => setForm(f => ({ ...f, percentualICMS: v }))} type="number" />
-              <FF label="Dias Validade" value={form.diasValidadePadrao} onChange={v => setForm(f => ({ ...f, diasValidadePadrao: v }))} type="number" />
-              <FF label="Qtde Estoque" value={form.quantidadeEstoque} onChange={v => setForm(f => ({ ...f, quantidadeEstoque: v }))} type="number" />
+              <FF label="Código" value={form.idProduto} disabled={true} className="col-span-1" />
+              <FF label="Descrição" value={form.nomeProduto} disabled={!podeEditarBasico} onChange={v => setForm(f => ({ ...f, nomeProduto: v }))} className="col-span-2" />
+
+              <FF label="Cód. de Barras" value={form.codigoBarras} disabled={!podeEditarBasico}
+                onChange={v => setForm(f => ({ ...f, codigoBarras: v.replace(/\D/g, '').slice(0, 5) }))} className="col-span-1" />
+
+              <FF label="ICMS (%)" value={form.percentualICMS} disabled={!podeEditarFinanceiro} onChange={v => setForm(f => ({ ...f, percentualICMS: v }))} type="number" />
+              <FF label="Dias Validade" value={form.diasValidadePadrao} disabled={!podeEditarBasico} onChange={v => setForm(f => ({ ...f, diasValidadePadrao: v }))} type="number" />
+
+              <FF label="Qtde Estoque" value={form.quantidadeEstoque} disabled={true} type="number" />
+
               <div className="col-span-1" />
-              <FF label="% Lucro Balcão" value={form.percentualLucroBalcao} onChange={v => setForm(f => ({ ...f, percentualLucroBalcao: v }))} type="number" />
-              <FF label="Preço Balcão (R$)" value={form.precoBalcao} onChange={v => setForm(f => ({ ...f, precoBalcao: v }))} type="number" />
-              <FF label="% Lucro Atacado" value={form.percentualLucroAtacado} onChange={v => setForm(f => ({ ...f, percentualLucroAtacado: v }))} type="number" />
-              <FF label="Preço Atacado (R$)" value={form.precoAtacado} onChange={v => setForm(f => ({ ...f, precoAtacado: v }))} type="number" />
+              <FF label="% Lucro Balcão" value={form.percentualLucroBalcao} disabled={!podeEditarFinanceiro} onChange={v => setForm(f => ({ ...f, percentualLucroBalcao: v }))} type="number" />
+              <FF label="Preço Balcão (R$)" value={form.precoBalcao} disabled={!podeEditarFinanceiro} onChange={v => setForm(f => ({ ...f, precoBalcao: v }))} type="number" />
+              <FF label="% Lucro Atacado" value={form.percentualLucroAtacado} disabled={!podeEditarFinanceiro} onChange={v => setForm(f => ({ ...f, percentualLucroAtacado: v }))} type="number" />
+              <FF label="Preço Atacado (R$)" value={form.precoAtacado} disabled={!podeEditarFinanceiro} onChange={v => setForm(f => ({ ...f, precoAtacado: v }))} type="number" />
             </div>
           </div>
 
@@ -302,7 +332,7 @@ export default function CatalogoPage() {
                     return (
                       <div key={ing.idIngrediente}
                         className={`flex items-center gap-2 px-3 py-2 transition ${isSel ? 'bg-green/10 border-l-4 border-green' : 'bg-white hover:bg-gray-50 border-l-4 border-transparent'}`}>
-                        <button type="button" onClick={() => toggleIngrediente(ing.idIngrediente)}
+                        <button type="button" disabled={isAtendente} onClick={() => !isAtendente && toggleIngrediente(ing.idIngrediente)}
                           className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition
                             ${isSel ? 'bg-green border-green' : 'border-gray-300'}`}>
                           {isSel && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
@@ -314,7 +344,7 @@ export default function CatalogoPage() {
                         </div>
 
                         {isSel && (
-                          <input
+                          <input disabled={isAtendente}
                             type="number" min="0" step="any"
                             value={fichaItem.quantidade}
                             onChange={e => setQtdFicha(ing.idIngrediente, e.target.value)}
@@ -347,7 +377,9 @@ export default function CatalogoPage() {
                           <span key={f.ingredienteId}
                             className="inline-flex items-center gap-1 bg-green/10 text-green border border-green/30 rounded-full px-2 py-0.5 text-xs font-semibold">
                             {ing.nomeIngrediente} <span className="text-gray-500 font-normal">({f.quantidade} {ing.unidadeMedida})</span>
-                            <button onClick={() => toggleIngrediente(f.ingredienteId)} className="text-green/60 hover:text-red ml-0.5 font-bold">×</button>
+                            {!isAtendente && (
+                              <button onClick={() => toggleIngrediente(f.ingredienteId)} className="text-green/60 hover:text-red ml-0.5 font-bold">×</button>
+                            )}
                           </span>
                         )
                       })}
@@ -371,7 +403,7 @@ export default function CatalogoPage() {
           {/* Linha 3 — receita */}
           <div>
             <p className="font-bold text-sm mb-1">Receita / Modo de Preparo <span className="text-xs text-gray-400 font-normal">(textoReceita — fichasTecnicas)</span>:</p>
-            <textarea value={form.textoReceita || ''} onChange={e => setForm(f => ({ ...f, textoReceita: e.target.value }))}
+            <textarea disabled={isAtendente} value={form.textoReceita || ''} onChange={e => setForm(f => ({ ...f, textoReceita: e.target.value }))}
               rows={4} placeholder="Descreva o modo de preparo..."
               className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gold resize-none pan-scroll" />
           </div>
