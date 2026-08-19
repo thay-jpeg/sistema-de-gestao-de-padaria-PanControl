@@ -3,6 +3,7 @@ package com.padaria.backend.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.padaria.backend.repository.IngredienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +13,6 @@ import com.padaria.backend.model.FichaTecnica;
 import com.padaria.backend.model.Ingrediente;
 import com.padaria.backend.model.Produto;
 import com.padaria.backend.repository.FichaTecnicaRepository;
-import com.padaria.backend.repository.IngredienteRepository;
 import com.padaria.backend.repository.ProdutoRepository;
 
 import jakarta.transaction.Transactional;

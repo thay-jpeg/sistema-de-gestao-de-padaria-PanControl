@@ -1,7 +1,7 @@
 package com.padaria.backend.service;
 
 import com.padaria.backend.dto.ItemVendaDTO;
-import com.padaria.backend.dto.VendaRequisitadaDTO;
+import com.padaria.backend.dto.VendaResponseDTO;
 import com.padaria.backend.model.ClienteAtacadista;
 import com.padaria.backend.model.ItemVenda;
 import com.padaria.backend.model.Produto;
@@ -35,7 +35,7 @@ public class VendaService {
     private ClienteAtacadistaRepository clienteAtacadistaRepository;
 
     @Transactional
-    public Venda registrarVenda(VendaRequisitadaDTO request) {
+    public Venda registrarVenda(VendaResponseDTO request) {
 
         Usuario usuario = usuarioRepository.findById(request.getIdUsuario())
                 .orElseThrow(() -> new RuntimeException("Vendedor (Usuário) não encontrado na base de dados!"));

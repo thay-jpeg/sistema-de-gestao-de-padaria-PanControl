@@ -38,13 +38,11 @@ const COLS_MAP = {
     { key: 'precoAtacadoStr',label:'Preço Atacado', align: 'right' },
   ],
   ingredientes: [
-    { key: 'code',       label: 'Cód.'           },
-    { key: 'name',       label: 'Ingrediente'    },
-    { key: 'unidadeMedida', label: 'Un.'         },
-    { key: 'qtdeStr',    label: 'Estoque', align: 'right' },
-    { key: 'minStr',     label: 'Mín.',    align: 'right' },
-    { key: 'custoStr',   label: 'Custo Médio',   align: 'right' },
-    { key: 'status',     label: 'Status'         },
+    { key: 'code',     label: 'Cód.',         align: 'center' },
+    { key: 'name',     label: 'Descrição'                     },
+    { key: 'custoStr', label: 'Custo Médio',  align: 'right'  },
+    { key: 'qtdeStr',  label: 'Estoque',      align: 'right'  },
+    { key: 'status',   label: 'Status',       align: 'center' },
   ],
   pedidos: [
     { key: 'id',         label: 'ID'      },
@@ -82,7 +80,7 @@ export default function RelatoriosPage() {
     return true
   }
 
-  function handleSearch() {
+  async function handleSearch() {
     setRanBusca(true)
     switch (type) {
       case 'vendas': {
@@ -115,28 +113,48 @@ export default function RelatoriosPage() {
         break
       }
       case 'ingredientes': {
-        setRows(ingredients.map(i => {
-          const baixo = i.quantidadeEstoque <= i.estoqueMinimo
-          return {
-            ...i,
-            qtdeStr:  `${i.quantidadeEstoque} ${i.unidadeMedida}`,
-            minStr:   `${i.estoqueMinimo} ${i.unidadeMedida}`,
-            custoStr: `R$ ${Number(i.custoMedioUnitario || 0).toFixed(4)}`,
-            status:   baixo ? '⚠ Baixo' : 'OK',
-          }
-        }))
-        break
+    
+        let url = 'http://localhost:8080/api/relatorios/ingredientes';
+        
+        // Converte o padrão do HTML (YYYY-MM-DD) para a query
+        const queryParams = new URLSearchParams();
+        if (from) queryParams.append('dataInicio', from);
+        if (to) queryParams.append('dataFim', to);
+        
+        if (from || to) {
+            url += `?${queryParams.toString()}`;
+        }
+
+        
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Mapeia os dados do DTO do Java para a DataTable do componente
+                const ingredientesRows = data.map((ing) => ({
+                    id: ing.idIngrediente,
+                    code: String(ing.idIngrediente).padStart(3, '0'), // formata ex: '001'
+                    name: ing.descricao,
+                    unidadeMedida: '', // já embutida na descrição do DTO
+                    qtdeStr: String(ing.estoque),
+                    minStr: '', // Retirado do Java para simplificar
+                    custoStr: `R$ ${Number(ing.custoMedio).toFixed(4).replace('.', ',')}`,
+                    status: ing.status === 'OK' ? ' OK' : ' ALERTA'
+                }));
+                
+                setRows(ingredientesRows);
+            } else {
+                console.error("Erro na resposta da API de relatórios");
+                setRows([]);
+            }
+        } catch (error) {
+            console.error("Erro ao buscar relatório de ingredientes:", error);
+            setRows([]);
+        }
+        break;
       }
-      case 'pedidos': {
-        setRows(pedidos
-          .filter(p => inRange(p.dataPedido))
-          .map(p => ({
-            ...p,
-            totalStr:  `R$ ${Number(p.valorTotal || 0).toFixed(2).replace('.', ',')}`,
-            itensQtde: (p.itens || []).length,
-          })))
-        break
-      }
+      
       case 'perdas': {
         setRows(perdas.filter(p => inRange(p.dataPerda)))
         break

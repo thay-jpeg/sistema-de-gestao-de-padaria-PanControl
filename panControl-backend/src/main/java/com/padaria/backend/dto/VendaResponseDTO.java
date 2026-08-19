@@ -1,7 +1,7 @@
 package com.padaria.backend.dto;
 import java.util.List;
 
-public class VendaRequisitadaDTO {
+public class VendaResponseDTO {
     private String metodoPagamento;
     private Integer idUsuario;
     private Integer idClienteAtacadista;
