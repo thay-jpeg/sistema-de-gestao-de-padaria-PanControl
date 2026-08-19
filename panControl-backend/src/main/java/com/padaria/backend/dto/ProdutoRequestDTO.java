@@ -10,11 +10,13 @@ public class ProdutoRequestDTO {
     private BigDecimal percentualLucroBalcao;
     private BigDecimal percentualLucroAtacado;
     private BigDecimal precoBalcao;
+    private String imagem;
     private BigDecimal precoAtacado;
     private Integer quantidadeEstoque;
 
     public String getNomeProduto() { return nomeProduto; } public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }
     public String getCodigoBarras() { return codigoBarras; } public void setCodigoBarras(String codigoBarras) { this.codigoBarras = codigoBarras; }
+    public String getImagem() { return imagem; } public void setImagem(String imagem) { this.imagem = imagem; }
     public Integer getDiasValidadePadrao() { return diasValidadePadrao; } public void setDiasValidadePadrao(Integer diasValidadePadrao) { this.diasValidadePadrao = diasValidadePadrao; }
     public BigDecimal getPercentualICMS() { return percentualICMS; } public void setPercentualICMS(BigDecimal percentualICMS) { this.percentualICMS = percentualICMS; }
     public BigDecimal getPercentualLucroBalcao() { return percentualLucroBalcao; } public void setPercentualLucroBalcao(BigDecimal percentualLucroBalcao) { this.percentualLucroBalcao = percentualLucroBalcao; }

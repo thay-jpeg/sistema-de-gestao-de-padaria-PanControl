@@ -50,14 +50,10 @@ export default function ProducaoPage() {
 
   // Buscando os produtos da API
   useEffect(() => {
-    if (view === 'stock') {
-      api.get('/produtos').then(res => setProducts(res.data)).catch(console.error);
-    } else if (view === 'ingredients') {
-      api.get('/ingredientes').then(res => setIngredients(res.data)).catch(console.error);
-    } else if (view === 'history') {
-      api.get('/producao').then(res => setProducoes(res.data)).catch(console.error);
-    }
-  }, [view]);
+    api.get('/produtos').then(res => setProducts(res.data)).catch(console.error);
+    api.get('/ingredientes').then(res => setIngredients(res.data)).catch(console.error);
+    api.get('/producao').then(res => setProducoes(res.data)).catch(console.error);
+  }, []);
 
   // formato YYYY-MM-DD
   const getTodayISO = () => new Date().toISOString().split('T')[0];
@@ -87,16 +83,6 @@ export default function ProducaoPage() {
       setFichaTecnicaAtiva([]);
     }
   }, [selectedProductId]);
-
-  useEffect(() => {
-    if (view === 'stock') {
-      api.get('/produtos').then(res => setProducts(res.data)).catch(console.error);
-    } else if (view === 'ingredients') {
-      api.get('/ingredientes').then(res => setIngredients(res.data)).catch(console.error);
-    } else if (view === 'history') {
-      api.get('/producao').then(res => setProducoes(res.data)).catch(console.error);
-    }
-  }, [view]);
 
   const formatarDataBR = (dataIso) => {
     if (!dataIso) return '';
@@ -250,9 +236,9 @@ export default function ProducaoPage() {
       idUsuario: idUsuarioLogado,
     };
 
-   try {
+    try {
       await api.post('/perdas', payload);
-      
+
       setProducts(prev => prev.map(p => {
         if (p.idProduto === payload.idProduto) {
           const estoqueAtual = p.quantidadeEstoque || 0;
@@ -267,8 +253,8 @@ export default function ProducaoPage() {
         alert("Perda registrada com sucesso!\nO estoque do produto foi atualizado.");
       }
 
-      setPerdaForm(EMPTY_PERDA); 
-      setSelProducao(null); 
+      setPerdaForm(EMPTY_PERDA);
+      setSelProducao(null);
       setModalPerda(false);
     } catch (error) {
       console.error("Erro ao registrar perda:", error);
