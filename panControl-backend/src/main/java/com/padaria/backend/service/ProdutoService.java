@@ -64,6 +64,13 @@ public class ProdutoService {
         return false;
     }
 
+     public List<ProdutoResponseDTO> buscarProdutosPorNomeOuCodigo(String query) {
+        return produtoRepository.findByNomeProdutoContainingIgnoreCaseOrCodigoBarrasContainingIgnoreCase(query, query)
+                .stream()
+                .map(this::mapearEntidadeParaDto)
+                .collect(Collectors.toList());
+    }
+
     public ProdutoResponseDTO buscarPorNome(String nomeProduto) {
     Produto produto = produtoRepository.findByNomeProdutoContainingIgnoreCase(nomeProduto)
         .orElseThrow(() -> new IllegalArgumentException("Produto não encontrado"));

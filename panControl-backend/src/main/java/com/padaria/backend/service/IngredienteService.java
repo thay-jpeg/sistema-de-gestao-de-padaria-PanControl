@@ -1,15 +1,19 @@
 package com.padaria.backend.service;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.padaria.backend.dto.IngredienteRelatorioDTO;
 import com.padaria.backend.dto.IngredienteRequestDTO;
 import com.padaria.backend.dto.IngredienteResponseDTO;
 import com.padaria.backend.model.Ingrediente;
 import com.padaria.backend.repository.IngredienteRepository;
+import com.padaria.backend.repository.RelatorioIngredienteProjection;
 
 import jakarta.transaction.Transactional;
 
@@ -78,5 +82,38 @@ public class IngredienteService {
         dto.setEstoqueMinimo(entidade.getEstoqueMinimo());
         dto.setCustoMedioUnitario(entidade.getCustoMedioUnitario());
         return dto;
+    }
+
+    public List<IngredienteRelatorioDTO> gerarRelatorio(String dataInicio, String dataFim) {
+        String inicio = (dataInicio != null && !dataInicio.trim().isEmpty()) ? dataInicio : null;
+        String fim = (dataFim != null && !dataFim.trim().isEmpty()) ? dataFim : null;
+
+        List<RelatorioIngredienteProjection> resultados = ingredienteRepository.buscarRelatorioComFiltro(inicio, fim);
+        List<IngredienteRelatorioDTO> relatorio = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+
+        for (RelatorioIngredienteProjection proj : resultados) {
+            IngredienteRelatorioDTO dto = new IngredienteRelatorioDTO();
+            dto.setIdIngrediente(proj.getIdIngrediente());
+            dto.setDescricao(proj.getNome() + " (" + proj.getMedida() + ")");
+            dto.setCustoMedio(proj.getCusto());
+            dto.setEstoque(proj.getEstoque());
+
+            if (proj.getValidade() != null) {
+                dto.setValidadeLote(sdf.format(proj.getValidade()));
+            } else {
+                dto.setValidadeLote("Sem compra reg.");
+            }
+
+            if (proj.getEstoque().compareTo(proj.getMinimo()) <= 0) {
+                dto.setStatus("ALERTA");
+            } else {
+                dto.setStatus("OK");
+            }
+
+            relatorio.add(dto);
+        }
+
+        return relatorio;
     }
 }

@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 import com.padaria.backend.model.Produto;
 
@@ -11,4 +12,6 @@ import com.padaria.backend.model.Produto;
 public interface ProdutoRepository extends JpaRepository<Produto, Integer> {
 
     Optional<Produto> findByNomeProdutoContainingIgnoreCase(String nomeProduto);
+
+    List<Produto> findByNomeProdutoContainingIgnoreCaseOrCodigoBarrasContainingIgnoreCase(String nome, String codigo);
 }
